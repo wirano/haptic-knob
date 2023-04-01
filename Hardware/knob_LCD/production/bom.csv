@@ -1,0 +1,8 @@
+Designator,Footprint,Quantity,Value,LCSC Part #
+"H1, H2, H3",MountingHole_2.5mm_Pad_TopBottom,3,MountingHole_Pad,
+J1,Molex_SlimStack_502430-2410_2x12_P0.40mm_Vertical,1,ST77903,
+J3,JST_SHL_SM14B-SHLS-TF_1x14-1MP_P1.00mm_Horizontal,1,Conn_01x14_Socket,
+Q1,TSOT-23,1,AO3400A,
+R1,0402,1,100R,
+R2,0402,1,10K,
+R3,0402,1,10R,

@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "w_logo")(type "KiCad")(uri "${KIPRJMOD}/footprints/w_logo.pretty")(options "")(descr ""))
+)
