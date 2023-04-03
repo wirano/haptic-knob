@@ -25,11 +25,8 @@
 #define LCD_PIN_D2      14
 #define LCD_PIN_D3      9
 
-#define LCD_PIN_RST     3
-#define LCD_PIN_ID      17
-#define LCD_PIN_SDA     18
-#define LCD_PIN_DC      8
-#define LCD_PIN_BLK     46
+#define LCD_PIN_RST     47
+#define LCD_PIN_BLK     21
 
 #ifndef MY_DISP_HOR_RES
 #warning Please define or replace the macro MY_DISP_HOR_RES with the actual screen width, default value 320 is used for now.
@@ -134,9 +131,6 @@ static void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area,
             lcdqspi_draw_line(area->x1, area->x2, y, (uint32_t *) color_p);
             color_p = color_p + area->x2 - area->x1 + 1;
         }
-
-        ESP_LOGI(TAG, "x1:%d x2:%d y1:%d y2:%d;%dx%d", area->x1, area->x2,
-                 area->y1, area->y2, area->x2 - area->x1, area->y2 - area->y1);
     }
 
     /*IMPORTANT!!!

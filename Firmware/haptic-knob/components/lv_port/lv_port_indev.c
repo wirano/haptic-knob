@@ -186,10 +186,10 @@ static void touchpad_init(void) {
     cst816d_tp_desc_t tp = {
             .i2c_port = 1,
             .i2c_freq = 400 * 1000,
-            .scl_io_num = 7,
-            .sda_io_num = 6,
+            .scl_io_num = 48,
+            .sda_io_num = 45,
             .int_io_num = -1,
-            .rst_io_num = 5
+            .rst_io_num = 3
     };
     cst816d_tp_init(&tp);
 
