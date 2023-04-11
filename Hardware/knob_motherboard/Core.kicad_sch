@@ -1,4 +1,4 @@
-(kicad_sch (version 20230221) (generator eeschema)
+(kicad_sch (version 20230409) (generator eeschema)
 
   (uuid 13bb42cd-47b2-4040-92fd-ce06bd421581)
 
@@ -1015,14 +1015,15 @@
   )
 
   (text_box "Strapping Pin: GPIO0, GPIO45, GPIO46, GPIO3"
-    (at 224.155 33.655 0) (size 24.13 13.335)
+    (exclude_from_sim no) (at 224.155 33.655 0) (size 24.13 13.335)
     (stroke (width 0) (type default))
     (fill (type none))
     (effects (font (size 1.27 1.27)) (justify left top))
     (uuid 202b0f5e-01fa-4d02-a521-b48c2b93b5aa)
   )
 
-  (text "Pull up while booting" (at 135.255 57.15 0)
+  (text "Pull up while booting" (exclude_from_sim no)
+ (at 135.255 57.15 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid bde18fc8-6942-4734-af9e-abebd057b7cc)
   )
