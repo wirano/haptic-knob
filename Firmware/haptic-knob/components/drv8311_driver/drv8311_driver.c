@@ -134,7 +134,7 @@ static uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
         drv8311_spi_send_pkg_t data_pkg;
         data_pkg.header = drv8311_spi_header_gen(RW_CTRL_READ, reg);
         data_pkg.data.data = 0xffff >> 1;
-        data_pkg.data.parity = parity_even_calc(0xff);
+        data_pkg.data.parity = parity_even_calc(data_pkg.data.data);
         handle->spi_trans((uint8_t *) &data_pkg, sizeof(data_pkg),
                           (uint8_t *) &rec, sizeof(rec));
     } else if (handle->protel == tSPI) {
@@ -142,7 +142,7 @@ static uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
         data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_READ, reg,
                                                   handle->devicd_id);
         data_pkg.data.data = 0xffff >> 1;
-        data_pkg.data.parity = parity_even_calc(0xff);
+        data_pkg.data.parity = parity_even_calc(data_pkg.data.data);
         handle->spi_trans((uint8_t *) &data_pkg, sizeof(data_pkg),
                           (uint8_t *) &rec, sizeof(rec));
     }

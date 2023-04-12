@@ -27,15 +27,17 @@
 
 #include "driver/spi_common.h"
 #include "driver/spi_master.h"
+#include "esp_log.h"
 #include "spi.h"
 #include "drv8311_driver.h"
+#include <stdint.h>
 
 #define SPI_BUS SPI3_HOST
 #define SPI_CLK_PIN 40
-#define MOSI_PIN 36
-#define MISO_PIN 37
-#define DRV8311_CS_PIN 39
-#define MT6701_CS_PIN 35
+#define MOSI_PIN 41
+#define MISO_PIN 42
+#define DRV8311_CS_PIN 2
+#define MT6701_CS_PIN 38
 #define SPI_FREQ SPI_MASTER_FREQ_10M
 
 #define TAG "spi"
@@ -47,18 +49,22 @@ drv8311_handle_t drv8311;
 
 void drv8311_spi_trans(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data,
                uint8_t rec_len) {
-//    spi_device_acquire_bus(drv8311_dev,portMAX_DELAY);
+    spi_device_acquire_bus(drv8311_dev,portMAX_DELAY);
 
+    uint32_t d = 0x8001ffff;
     spi_transaction_t t = {
-            .tx_buffer = send_data,
+            .tx_buffer = &d,
             .length = send_len * 8,
             .rx_buffer = rec_data,
-            .rxlength = rec_len
+            .rxlength = rec_len * 8
     };
 
     ESP_ERROR_CHECK(spi_device_polling_transmit(drv8311_dev,&t));
+    ESP_LOG_BUFFER_HEX(TAG,&d,send_len);
+    ESP_LOG_BUFFER_HEX(TAG,send_data,send_len);
+    ESP_LOG_BUFFER_HEX(TAG,rec_data,rec_len);
 
-//    spi_device_release_bus(drv8311_dev);
+    spi_device_release_bus(drv8311_dev);
 }
 
 void spi_dev_init() {
@@ -69,20 +75,20 @@ void spi_dev_init() {
             .quadhd_io_num = -1,
             .quadwp_io_num = -1,
             .max_transfer_sz = 4,
-//            .flags = SPICOMMON_BUSFLAG_MASTER,
+            .flags = SPICOMMON_BUSFLAG_MASTER,
     };
-    ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &buscfg, SPI_DMA_DISABLED));
+    ESP_ERROR_CHECK(spi_bus_initialize(SPI_BUS, &buscfg, SPI_DMA_DISABLED));
 
     spi_device_interface_config_t spi_dev_cfg = {
             .clock_speed_hz = SPI_MASTER_FREQ_8M,
-            .mode = 1,
+            .mode = 0,
             .spics_io_num = DRV8311_CS_PIN,
             .queue_size = 1,
     };
-    ESP_ERROR_CHECK(spi_bus_add_device(SPI3_HOST, &spi_dev_cfg, &drv8311_dev));
+    ESP_ERROR_CHECK(spi_bus_add_device(SPI_BUS, &spi_dev_cfg, &drv8311_dev));
 
     spi_dev_cfg.spics_io_num = MT6701_CS_PIN;
-    ESP_ERROR_CHECK(spi_bus_add_device(SPI3_HOST, &spi_dev_cfg, &mt6701_dev));
+    ESP_ERROR_CHECK(spi_bus_add_device(SPI_BUS, &spi_dev_cfg, &mt6701_dev));
 
     drv8311_init(&drv8311,tSPI,0x00,drv8311_spi_trans);
 }
