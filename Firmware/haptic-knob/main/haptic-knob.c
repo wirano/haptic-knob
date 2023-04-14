@@ -36,23 +36,56 @@ void app_main(void) {
     gpio_set_level(CFG3, 1);
     gpio_set_level(CFG1, 0);
 
+    gpio_conf.pin_bit_mask = 1ULL << 38U;  // mt6701 cs
+    gpio_config(&gpio_conf);
+    gpio_set_level(38,0);
+
+    gpio_conf.pin_bit_mask = 1ULL << 2U;  // drv8311 cs
+    gpio_config(&gpio_conf);
+
     gpio_conf.pin_bit_mask = 1ULL << 39U; // drv8311 nsleep
     gpio_config(&gpio_conf);
     gpio_set_level(39, 1);
     vTaskDelay(pdMS_TO_TICKS(100));
+    gpio_set_level(39, 0);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    gpio_set_level(39, 1);
+    vTaskDelay(pdMS_TO_TICKS(100));
 
     spi_dev_init();
-    drv8311_get_status(drv8311);
+//    drv8311_get_status(drv8311);
 
-    drv8311_dev_sts1_t rec = drv8311_get_status(drv8311);
-
+    drv8311_reg_t rec;
+    rec.half_word = drv8311_read(drv8311,DRV8311_DEV_STS1_ADDR);
     ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_OT_STS_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_SUP_STS_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_DRV_STS_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_SYS_STS_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_PWM_SYNC_PRD_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_FLT_MODE_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_SYSF_CTRL_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_DRVF_CTRL_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_FLT_TCTRL_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_FLT_CLR_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+    rec.half_word = drv8311_read(drv8311,DRV8311_PWMG_PERIOD_ADDR);
+    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+
     ESP_LOGI(TAG, "%f\n", mt6701_get_angle(mt6701));
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(500));
-        rec = drv8311_get_status(drv8311);
-
+        rec.half_word = drv8311_read(drv8311,DRV8311_DEV_STS1_ADDR);
         ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
     }
 }

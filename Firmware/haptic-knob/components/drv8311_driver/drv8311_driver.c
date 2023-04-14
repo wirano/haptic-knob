@@ -135,7 +135,7 @@ static inline drv8311_tspi_send_header_t drv8311_tspi_header_gen(uint8_t rw_mode
 //    }
 //}
 
-static uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
+uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
     drv8311_recv_pkg_t rec;
 
     if (handle->protel == SPI) {
@@ -146,7 +146,7 @@ static uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
 
         // swap to big-endian
         for (int i = 0; i < sizeof(data_pkg) / 2; ++i) {
-            SWAP(data_pkg.bytes[i],data_pkg.bytes[sizeof(data_pkg) -1 - i]);
+            SWAP(data_pkg.bytes[i], data_pkg.bytes[sizeof(data_pkg) - 1 - i]);
         }
 
         handle->spi_trans(data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
@@ -158,7 +158,7 @@ static uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
 
         // swap to big-endian
         for (int i = 0; i < sizeof(data_pkg) / 2; ++i) {
-            SWAP(data_pkg.bytes[i],data_pkg.bytes[sizeof(data_pkg) -1 - i]);
+            SWAP(data_pkg.bytes[i], data_pkg.bytes[sizeof(data_pkg) - 1 - i]);
         }
 
         handle->spi_trans(data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
@@ -183,7 +183,7 @@ void drv8311_init(drv8311_handle_t *handle, drv8311_protal_e portal, uint8_t dev
 }
 
 drv8311_dev_sts1_t drv8311_get_status(drv8311_handle_t handle) {
-    drv8311_reg rec;
+    drv8311_reg_t rec;
     rec.half_word = drv8311_read(handle, DRV8311_DEV_STS1_ADDR);
 
     return rec.dev_sts1;

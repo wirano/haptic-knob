@@ -27,6 +27,7 @@
 
 #include "driver/spi_common.h"
 #include "driver/spi_master.h"
+#include "driver/gpio.h"
 #include "esp_log.h"
 #include "mt6701_driver.h"
 #include "spi.h"
@@ -49,20 +50,30 @@ spi_device_handle_t mt6701_dev;
 drv8311_handle_t drv8311;
 mt6701_handle_t mt6701;
 
+void drv8311_cs_low(spi_transaction_t *trans){
+    gpio_set_level(DRV8311_CS_PIN,0);
+}
+
+void drv8311_cs_high(spi_transaction_t *trans){
+    gpio_set_level(DRV8311_CS_PIN,1);
+}
+
 void drv8311_spi_trans(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data,
                        uint8_t rec_len) {
     spi_device_acquire_bus(drv8311_dev, portMAX_DELAY);
+uint8_t rec_buffer[4];
 
     spi_transaction_t t = {
             .tx_buffer = send_data,
             .length = send_len * 8,
-            .rx_buffer = rec_data,
-            .rxlength = rec_len * 8
+            .rx_buffer = rec_buffer,
+            .rxlength = (rec_len + 1) * 8
     };
 
-    ESP_ERROR_CHECK(spi_device_polling_transmit(drv8311_dev, &t));
+    ESP_ERROR_CHECK(spi_device_transmit(drv8311_dev, &t));
+    memcpy(rec_data,rec_buffer + 1,rec_len);
     ESP_LOG_BUFFER_HEX(TAG, send_data, send_len);
-    ESP_LOG_BUFFER_HEX(TAG, rec_data, rec_len);
+    ESP_LOG_BUFFER_HEX(TAG, rec_buffer + 1, rec_len);
 
     spi_device_release_bus(drv8311_dev);
 }
@@ -77,7 +88,8 @@ void mt6701_spi_trans(uint8_t *rec_data, uint8_t rec_len) {
             .rx_buffer = rec_data
     };
 
-    ESP_ERROR_CHECK(spi_device_polling_transmit(mt6701_dev, &t));
+    ESP_ERROR_CHECK(spi_device_transmit(mt6701_dev, &t));
+    ESP_LOG_BUFFER_HEX(TAG, rec_data, rec_len);
 
     spi_device_release_bus(mt6701_dev);
 }
@@ -89,21 +101,26 @@ void spi_dev_init() {
             .miso_io_num = MISO_PIN,
             .quadhd_io_num = -1,
             .quadwp_io_num = -1,
-            .max_transfer_sz = 4,
+//            .max_transfer_sz = 4,
     };
     ESP_ERROR_CHECK(spi_bus_initialize(SPI_BUS, &buscfg, SPI_DMA_DISABLED));
 
     spi_device_interface_config_t spi_dev_cfg = {
             .clock_speed_hz = SPI_MASTER_FREQ_8M,
             .mode = 1,
-            .spics_io_num = DRV8311_CS_PIN,
+            .spics_io_num = -1,
             .queue_size = 4,
+            .pre_cb = drv8311_cs_low,
+            .post_cb = drv8311_cs_high,
     };
     ESP_ERROR_CHECK(spi_bus_add_device(SPI_BUS, &spi_dev_cfg, &drv8311_dev));
 
+    spi_dev_cfg.mode = 3;
     spi_dev_cfg.spics_io_num = MT6701_CS_PIN;
+    spi_dev_cfg.pre_cb = NULL;
+    spi_dev_cfg.post_cb = NULL;
     ESP_ERROR_CHECK(spi_bus_add_device(SPI_BUS, &spi_dev_cfg, &mt6701_dev));
 
-    drv8311_init(&drv8311, tSPI, 0xf, drv8311_spi_trans);
+    drv8311_init(&drv8311, tSPI, 0x0, drv8311_spi_trans);
     mt6701_init(&mt6701,mt6701_spi_trans);
 }

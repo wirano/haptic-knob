@@ -52,6 +52,8 @@ drv8311_init(drv8311_handle_t *handle, drv8311_protal_e portal, uint8_t device_i
              void (*spi_trans)(uint8_t *send_data, uint8_t send_len,
                                uint8_t *rec_data, uint8_t rec_len));
 
+uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg);
+
 drv8311_dev_sts1_t drv8311_get_status(drv8311_handle_t handle);
 
 #endif //DRV8311_DRIVER_H

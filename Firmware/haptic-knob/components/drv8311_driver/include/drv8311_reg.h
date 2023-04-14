@@ -325,6 +325,6 @@ typedef union {
     drv8311_sys_ctrl_t sys_ctrl;
     uint16_t half_word;
     uint8_t byte[2];
-} drv8311_reg;
+} drv8311_reg_t;
 
 #endif //DRV8311_REG_H
