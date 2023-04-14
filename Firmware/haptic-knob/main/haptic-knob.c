@@ -1,6 +1,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/projdefs.h"
 #include "freertos/task.h"
 
 #include "lv_port.h"
@@ -35,6 +36,11 @@ void app_main(void) {
     gpio_set_level(CFG3, 1);
     gpio_set_level(CFG1, 0);
 
+    gpio_conf.pin_bit_mask = 1ULL << 39U; // drv8311 nsleep
+    gpio_config(&gpio_conf);
+    gpio_set_level(39, 1);
+    vTaskDelay(pdMS_TO_TICKS(100));
+
     spi_dev_init();
     drv8311_get_status(drv8311);
 
@@ -45,5 +51,8 @@ void app_main(void) {
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(500));
+        rec = drv8311_get_status(drv8311);
+
+        ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
     }
 }

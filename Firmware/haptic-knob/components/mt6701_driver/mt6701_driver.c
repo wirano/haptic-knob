@@ -68,7 +68,6 @@ static uint8_t crc6_check(const uint8_t *data, uint8_t len) {
 }
 
 static void mt6701_read_data(mt6701_handle_t handle) {
-
     uint8_t swap;
     mt6701_rec_data_t *temp;
 
@@ -97,7 +96,7 @@ static void mt6701_read_data(mt6701_handle_t handle) {
     }
 
     if (temp->mg_state_btn) {
-        ESP_LOGI(TAG, "over speed!");
+        ESP_LOGI(TAG, "btn pressed!");
         if (handle->btn_pressed_cb) {
             handle->btn_pressed_cb();
         }
@@ -108,6 +107,8 @@ void mt6701_init(mt6701_handle_t *handle, void (*ssi_read)(uint8_t *rec_buffer, 
     mt6701_instance_t *dev = malloc(sizeof(mt6701_instance_t));
 
     dev->ssi_read = ssi_read;
+    dev->over_speed_cb = NULL;
+    dev->btn_pressed_cb = NULL;
 
     *handle = dev;
 }

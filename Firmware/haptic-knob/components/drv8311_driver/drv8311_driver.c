@@ -26,46 +26,56 @@
 //
 
 #include <stdlib.h>
-#include <string.h>
 #include "drv8311_driver.h"
 #include "drv8311_reg.h"
 
 #define RW_CTRL_READ 0x01
 #define RW_CTRL_WRITE 0x00
 
+#define SWAP(x, y) do { (x) ^= (y); (y) ^= (x); (x) ^= (y); } while (0)
+
 typedef struct {
-    uint8_t rw_ctrl : 1;
-    uint8_t addr : 6;
     uint8_t parity : 1;
+    uint8_t addr : 6;
+    uint8_t rw_ctrl : 1;
 } drv8311_spi_send_header_t;
 
 typedef struct {
-    uint16_t rw_ctrl : 1;
-    uint16_t zero_0 : 2;
-    uint16_t device_id : 2;
-    uint16_t addr : 8;
-    uint16_t zero_1 : 2;
     uint16_t parity : 1;
+    uint16_t zero_1 : 2;
+    uint16_t addr : 8;
+    uint16_t device_id : 2;
+    uint16_t zero_0 : 2;
+    uint16_t rw_ctrl : 1;
 } drv8311_tspi_send_header_t;
 
 typedef struct {
-    uint16_t parity : 1;
     uint16_t data : 15;
+    uint16_t parity : 1;
 } drv8311_send_data_t;
 
-typedef struct __attribute__ ((__packed__)) {
-    drv8311_spi_send_header_t header;
-    drv8311_send_data_t data;
+typedef union {
+    struct __attribute__ ((__packed__)) {
+        drv8311_send_data_t data;
+        drv8311_spi_send_header_t header;
+    };
+    uint8_t bytes[3];
 } drv8311_spi_send_pkg_t;
 
-typedef struct __attribute__ ((__packed__)) {
-    drv8311_tspi_send_header_t header;
-    drv8311_send_data_t data;
+typedef union {
+    struct __attribute__ ((__packed__)) {
+        drv8311_send_data_t data;
+        drv8311_tspi_send_header_t header;
+    };
+    uint8_t bytes[4];
 } drv8311_tspi_send_pkg_t;
 
-typedef struct __attribute__ ((__packed__)) {
-    uint8_t status;
-    uint16_t data;
+typedef union {
+    struct __attribute__ ((__packed__)) {
+        uint16_t data;
+        uint8_t status;
+    };
+    uint8_t bytes[3];
 } drv8311_recv_pkg_t;
 
 static inline uint16_t parity_even_calc(uint16_t data) {
@@ -79,8 +89,7 @@ static inline uint16_t parity_even_calc(uint16_t data) {
     return parity & 1;
 }
 
-static inline drv8311_spi_send_header_t
-drv8311_spi_header_gen(uint8_t rw_mode, uint8_t addr) {
+static inline drv8311_spi_send_header_t drv8311_spi_header_gen(uint8_t rw_mode, uint8_t addr) {
     drv8311_spi_send_header_t header;
     uint16_t *temp;
 
@@ -94,8 +103,7 @@ drv8311_spi_header_gen(uint8_t rw_mode, uint8_t addr) {
     return header;
 }
 
-static inline drv8311_tspi_send_header_t
-drv8311_tspi_header_gen(uint8_t rw_mode, uint8_t addr, uint8_t device_id) {
+static inline drv8311_tspi_send_header_t drv8311_tspi_header_gen(uint8_t rw_mode, uint8_t addr, uint8_t device_id) {
     drv8311_tspi_send_header_t header;
     uint16_t *temp;
 
@@ -135,26 +143,35 @@ static uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
         data_pkg.header = drv8311_spi_header_gen(RW_CTRL_READ, reg);
         data_pkg.data.data = 0xffff >> 1;
         data_pkg.data.parity = parity_even_calc(data_pkg.data.data);
-        handle->spi_trans((uint8_t *) &data_pkg, sizeof(data_pkg),
-                          (uint8_t *) &rec, sizeof(rec));
+
+        // swap to big-endian
+        for (int i = 0; i < sizeof(data_pkg) / 2; ++i) {
+            SWAP(data_pkg.bytes[i],data_pkg.bytes[sizeof(data_pkg) -1 - i]);
+        }
+
+        handle->spi_trans(data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
     } else if (handle->protel == tSPI) {
         drv8311_tspi_send_pkg_t data_pkg;
-        data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_READ, reg,
-                                                  handle->devicd_id);
+        data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_READ, reg, handle->devicd_id);
         data_pkg.data.data = 0xffff >> 1;
         data_pkg.data.parity = parity_even_calc(data_pkg.data.data);
-        handle->spi_trans((uint8_t *) &data_pkg, sizeof(data_pkg),
-                          (uint8_t *) &rec, sizeof(rec));
+
+        // swap to big-endian
+        for (int i = 0; i < sizeof(data_pkg) / 2; ++i) {
+            SWAP(data_pkg.bytes[i],data_pkg.bytes[sizeof(data_pkg) -1 - i]);
+        }
+
+        handle->spi_trans(data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
     }
+
+    // swap to little-endian
+    SWAP(rec.bytes[0], rec.bytes[2]);
 
     return rec.data;
 }
 
-void
-drv8311_init(drv8311_handle_t *handle, drv8311_protal_e portal,
-             uint8_t device_id,
-             void (*spi_trans)(uint8_t *send_data, uint8_t send_len,
-                               uint8_t *rec_data, uint8_t rec_len)) {
+void drv8311_init(drv8311_handle_t *handle, drv8311_protal_e portal, uint8_t device_id,
+                  void (*spi_trans)(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, uint8_t rec_len)) {
 
     drv8311_instance_t *dev = malloc(sizeof(drv8311_instance_t));
 
