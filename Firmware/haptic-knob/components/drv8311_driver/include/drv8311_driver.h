@@ -31,6 +31,7 @@
 #include "drv8311_reg.h"
 #include <stdint.h>
 
+
 typedef enum {
     SPI = 0x00,
     tSPI = 0x01
@@ -47,10 +48,13 @@ typedef struct {
 
 typedef drv8311_instance_t *drv8311_handle_t;
 
+
 void
 drv8311_init(drv8311_handle_t *handle, drv8311_protal_e portal, uint8_t device_id,
              void (*spi_trans)(uint8_t *send_data, uint8_t send_len,
                                uint8_t *rec_data, uint8_t rec_len));
+
+void drv8311_write(drv8311_handle_t handle, uint8_t reg, uint16_t data);
 
 uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg);
 

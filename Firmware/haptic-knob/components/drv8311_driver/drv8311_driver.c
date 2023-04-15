@@ -34,6 +34,7 @@
 
 #define SWAP(x, y) do { (x) ^= (y); (y) ^= (x); (x) ^= (y); } while (0)
 
+
 typedef struct {
     uint8_t parity : 1;
     uint8_t addr : 6;
@@ -78,6 +79,7 @@ typedef union {
     uint8_t bytes[3];
 } drv8311_recv_pkg_t;
 
+
 static inline uint16_t parity_even_calc(uint16_t data) {
     uint16_t parity = 0;
 
@@ -118,22 +120,38 @@ static inline drv8311_tspi_send_header_t drv8311_tspi_header_gen(uint8_t rw_mode
     return header;
 }
 
-//void drv8311_write(drv8311_handle dev, uint8_t reg, uint16_t data) {
-//    if (dev->protel == SPI) {
-//        drv8311_spi_send_pkg_t data_pkg;
-//        data_pkg.header = drv8311_spi_header_gen(RW_CTRL_READ, reg);
-//        data_pkg.data.data = data;
-//        data_pkg.data.parity = parity_even_calc(data);
-//        dev->write_driver((uint8_t *) &data_pkg, sizeof(data_pkg));
-//    } else if (dev->protel == tSPI) {
-//        drv8311_tspi_send_pkg_t data_pkg;
-//        data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_READ, reg,
-//                                                  dev->devicd_id);
-//        data_pkg.data.data = data;
-//        data_pkg.data.parity = parity_even_calc(data);
-//        dev->write_driver((uint8_t *) &data_pkg, sizeof(data_pkg));
-//    }
-//}
+static void
+drv8311_transmit(drv8311_handle_t handle, uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, uint8_t rec_len) {
+    // swap to big-endian
+    for (int i = 0; i < send_len / 2; ++i) {
+        SWAP(send_data[i], send_data[send_len - 1 - i]);
+    }
+
+    handle->spi_trans(send_data, send_len, rec_data, rec_len);
+
+    // swap to little-endian
+    SWAP(rec_data[0], rec_data[2]);
+}
+
+void drv8311_write(drv8311_handle_t handle, uint8_t reg, uint16_t data) {
+    drv8311_recv_pkg_t rec;
+
+    if (handle->protel == SPI) {
+        drv8311_spi_send_pkg_t data_pkg;
+        data_pkg.header = drv8311_spi_header_gen(RW_CTRL_WRITE, reg);
+        data_pkg.data.data = data;
+        data_pkg.data.parity = parity_even_calc(data);
+
+        drv8311_transmit(handle, data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
+    } else if (handle->protel == tSPI) {
+        drv8311_tspi_send_pkg_t data_pkg;
+        data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_WRITE, reg, handle->devicd_id);
+        data_pkg.data.data = data;
+        data_pkg.data.parity = parity_even_calc(data);
+
+        drv8311_transmit(handle, data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
+    }
+}
 
 uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
     drv8311_recv_pkg_t rec;
@@ -141,31 +159,18 @@ uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
     if (handle->protel == SPI) {
         drv8311_spi_send_pkg_t data_pkg;
         data_pkg.header = drv8311_spi_header_gen(RW_CTRL_READ, reg);
-        data_pkg.data.data = 0xffff >> 1;
+        data_pkg.data.data = 0xffff >> 1; // send dummy bits
         data_pkg.data.parity = parity_even_calc(data_pkg.data.data);
 
-        // swap to big-endian
-        for (int i = 0; i < sizeof(data_pkg) / 2; ++i) {
-            SWAP(data_pkg.bytes[i], data_pkg.bytes[sizeof(data_pkg) - 1 - i]);
-        }
-
-        handle->spi_trans(data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
+        drv8311_transmit(handle, data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
     } else if (handle->protel == tSPI) {
         drv8311_tspi_send_pkg_t data_pkg;
         data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_READ, reg, handle->devicd_id);
-        data_pkg.data.data = 0xffff >> 1;
+        data_pkg.data.data = 0xffff >> 1; // send dummy bits
         data_pkg.data.parity = parity_even_calc(data_pkg.data.data);
 
-        // swap to big-endian
-        for (int i = 0; i < sizeof(data_pkg) / 2; ++i) {
-            SWAP(data_pkg.bytes[i], data_pkg.bytes[sizeof(data_pkg) - 1 - i]);
-        }
-
-        handle->spi_trans(data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
+        drv8311_transmit(handle, data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
     }
-
-    // swap to little-endian
-    SWAP(rec.bytes[0], rec.bytes[2]);
 
     return rec.data;
 }
