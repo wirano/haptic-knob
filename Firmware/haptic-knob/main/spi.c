@@ -46,6 +46,8 @@
 #define DRV8311_NSLEEP_PIN 39U
 #define DRV8311_PWM_SYNC_PIN 1U
 
+#define SWAP(x, y) do { (x) ^= (y); (y) ^= (x); (x) ^= (y); } while (0)
+
 #define TAG "spi"
 
 spi_device_handle_t drv8311_dev;
@@ -82,10 +84,22 @@ void drv8311_spi_trans(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, 
     };
 
     ESP_ERROR_CHECK(spi_device_transmit(drv8311_dev, &t));
-    rec_buffer.word >>= 1U; // workaround for SDO pin output delay
+//    ESP_LOG_BUFFER_HEX(TAG, rec_buffer.bytes, rec_len + 1);
+
+    // workaround for SDO pin output ahead one bit
+    // swap to fit little-endian bit order
+    for (int i = 0; i < sizeof(rec_buffer) / 2; ++i) {
+        SWAP(rec_buffer.bytes[i], rec_buffer.bytes[3 - i]);
+    }
+    // shift right
+    rec_buffer.word >>= 1U;
+    // swap back to SPI MSB order
+    for (int i = 0; i < sizeof(rec_buffer) / 2; ++i) {
+        SWAP(rec_buffer.bytes[i], rec_buffer.bytes[3 - i]);
+    }
     memcpy(rec_data, rec_buffer.bytes + 1, rec_len);
 //    ESP_LOG_BUFFER_HEX(TAG, send_data, send_len);
-    ESP_LOG_BUFFER_HEX(TAG, rec_buffer.bytes + 1, rec_len);
+//    ESP_LOG_BUFFER_HEX(TAG, rec_buffer.bytes, rec_len + 1);
 
     spi_device_release_bus(drv8311_dev);
 }
@@ -184,7 +198,6 @@ void spi_dev_init(void) {
             .clock_speed_hz = SPI_FREQ,
             .mode = 1,
             .cs_ena_pretrans = 1,
-//            .input_delay_ns = 75,
             .spics_io_num = DRV8311_CS_PIN,
             .queue_size = 4,
 //            .pre_cb = drv8311_cs_low,
