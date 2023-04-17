@@ -33,31 +33,57 @@
 
 
 typedef enum {
-    SPI = 0x00,
-    tSPI = 0x01
-} drv8311_protal_e;
+    SPI = 0x00, tSPI = 0x01
+} drv8311_protal_t;
 
 typedef struct {
-    drv8311_protal_e protel;
-    uint8_t devicd_id;
+    struct {
+        DRV8311_PWMCNTR_MODE_t mode;
+        uint16_t period;
+    } pwm_gen;
 
-    void
-    (*spi_trans)(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data,
-                 uint8_t rec_len);
+    struct {
+        drv8311_protal_t protel;
+        uint8_t devicd_id;
+        uint8_t parity_check;
+
+        void (*spi_trans)(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, uint8_t rec_len);
+    } interface;
 } drv8311_instance_t;
+
+typedef struct {
+    DRV8311_PWMCNTR_MODE_t pwmcnt_mode;
+    DRV8311_PWM_OSC_SYNC_t sync_mode;
+    DRV8311_SPICLK_FREQ_SYNC_t spi_clk;
+    DRV8311_SPISYNC_ACRCY_t spi_sync_clks;
+    drv8311_protal_t portal;
+    DRV8311_CSA_GAIN_t csa_gain;
+
+    uint16_t pwm_period;
+    uint8_t use_csa;
+    uint8_t dev_id;
+    uint8_t parity_check;
+
+    void (*spi_trans)(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, uint8_t rec_len);
+} drv8311_cfg_t;
 
 typedef drv8311_instance_t *drv8311_handle_t;
 
 
-void
-drv8311_init(drv8311_handle_t *handle, drv8311_protal_e portal, uint8_t device_id,
-             void (*spi_trans)(uint8_t *send_data, uint8_t send_len,
-                               uint8_t *rec_data, uint8_t rec_len));
-
-void drv8311_write(drv8311_handle_t handle, uint8_t reg, uint16_t data);
-
-uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg);
+void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg);
 
 drv8311_dev_sts1_t drv8311_get_status(drv8311_handle_t handle);
+
+uint16_t drv8311_get_sync_period(drv8311_handle_t handle);
+
+void drv8311_csa_ctrl(drv8311_handle_t handle, uint8_t en);
+
+void drv8311_csa_set_gain(drv8311_handle_t handle, DRV8311_CSA_GAIN_t gain);
+
+void drv8311_out_ctrl(drv8311_handle_t handle, uint8_t en);
+
+void drv8311_set_period(drv8311_handle_t handle, uint16_t period);
+
+void drv8311_set_duty(drv8311_handle_t handle, float a, float b, float c);
 
 #endif //DRV8311_DRIVER_H

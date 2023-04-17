@@ -53,7 +53,63 @@ typedef enum {
     DRV8311_DRV_CTRL_ADDR = 0x22,
     DRV8311_CSA_CTRL_ADDR = 0x23,
     DRV8311_SYS_CTRL_ADDR = 0x3f
-} DRV8311_REG_ADDR_e;
+} DRV8311_REG_ADDR_t;
+
+/**
+ * @brief PWM GEN counter mode
+ */
+typedef enum {
+    UP_DOWN = 0x0,
+    UP = 0x1,
+    DOWN = 0x2,
+    NO_ACTION = 0x3
+} DRV8311_PWMCNTR_MODE_t;
+
+/**
+ * @brief Oscillator synchronization and PWM_SYNC control
+ */
+typedef enum {
+    SYNC_DISABLE = 0x0,
+    USE_PWM_SYNC_PERIOD = 0x01,
+    SET_PWM_PERIOD = 0x02,
+    OSC_SYNC = 0x05,
+    OSC_SYNC_PWM_PERIOD = 0x06,
+    USE_SPI_CLK = 0x7
+} DRV8311_PWM_OSC_SYNC_t;
+
+/**
+ * @brief SPI Clock Frequency for synchronizing the Oscillator
+ */
+typedef enum {
+    SPI_FREQ_1M = 0x0,
+    SPI_FREQ_1_25M = 0x1,
+    SPI_FREQ_2M = 0x2,
+    SPI_FREQ_2_5M = 0x3,
+    SPI_FREQ_4M = 0x4,
+    SPI_FREQ_5M = 0x5,
+    SPI_FREQ_8M = 0x6,
+    SPI_FREQ_10M = 0x7,
+} DRV8311_SPICLK_FREQ_SYNC_t;
+
+/**
+ * @brief Number of SPI Clock Cycle require for synchronizing the Oscillator
+ */
+typedef enum {
+    CLOCKS_512 = 0x0,
+    CLOCKS_256 = 0x1,
+    CLOCKS_128 = 0x2,
+    CLOCKS_64 = 0x3
+} DRV8311_SPISYNC_ACRCY_t;
+
+/**
+ * @brief Current Sense Amplifier Gain setting
+ */
+typedef enum {
+    CSA_GAIN_250MV = 0x0,
+    CSA_GAIN_500MV = 0x1,
+    CSA_GAIN_1000MV = 0x2,
+    CSA_GAIN_2000MV = 0x3
+} DRV8311_CSA_GAIN_t;
 
 /**
  * @brief Device Status 1 Register
@@ -203,32 +259,14 @@ typedef struct {
 } drv8311_pwmg_period_t;
 
 /**
- * @brief PWM_GEN A Duty Registe
+ * @brief PWM_GEN x Duty Registe
+ * x can be A, B,C
  */
 typedef struct {
-    uint16_t pwm_duty_outa : 12;
+    uint16_t pwm_duty_outx : 12;
     uint16_t reserved_0 : 3;
     uint16_t parity_bit : 1;
-} drv8311_pwmg_a_duty_t;
-
-/**
- * @brief PWM_GEN B Duty Register
-
- */
-typedef struct {
-    uint16_t pwm_duty_outb : 12;
-    uint16_t reserved_0 : 3;
-    uint16_t parity_bit : 1;
-} drv8311_pwmg_b_duty_t;
-
-/**
- * @brief PWM_GEN C Duty Register
- */
-typedef struct {
-    uint16_t pwm_duty_outc : 12;
-    uint16_t reserved_0 : 3;
-    uint16_t parity_bit : 1;
-} drv8311_pwmg_c_duty_t;
+} drv8311_pwmg_x_duty_t;
 
 /**
  * @brief PWM State Register
@@ -283,7 +321,7 @@ typedef struct {
  */
 typedef struct {
     uint16_t csa_gain : 2;
-    uint16_t reserved_1 :1;
+    uint16_t reserved_1 : 1;
     uint16_t csa_en : 1;
     uint16_t reserved_0 : 11;
     uint16_t parity_bit : 1;
@@ -314,9 +352,7 @@ typedef union {
     drv8311_flt_tctrl_t flt_tctrl;
     drv8311_flt_ctrl_t flt_ctrl;
     drv8311_pwmg_period_t pwmg_period;
-    drv8311_pwmg_a_duty_t pwmg_a_duty;
-    drv8311_pwmg_b_duty_t pwmg_b_duty;
-    drv8311_pwmg_c_duty_t pwmg_c_duty;
+    drv8311_pwmg_x_duty_t pwmg_x_duty;
     drv8311_pwm_state_t pwm_state;
     drv8311_pwmg_ctrl_t pwmg_ctrl;
     drv8311_pwm_ctrl1_t pwm_ctrl1;
@@ -324,7 +360,7 @@ typedef union {
     drv8311_csa_ctrl_t csa_ctrl;
     drv8311_sys_ctrl_t sys_ctrl;
     uint16_t half_word;
-    uint8_t byte[2];
+    uint8_t bytes[2];
 } drv8311_reg_t;
 
 #endif //DRV8311_REG_H

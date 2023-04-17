@@ -139,7 +139,7 @@ static void spi_dev_gpio_init(void) {
     gpio_config(&gpio_conf);
     gpio_set_level(DRV8311_NSLEEP_PIN, 1);
 
-    // generate PWM for DRV8311 PWM SYNC
+    // generate 20kHZ PWM for DRV8311 PWM SYNC
     mcpwm_timer_config_t timer_config = {
             .group_id = 0,
             .clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT,
@@ -190,7 +190,7 @@ void spi_dev_init(void) {
             .miso_io_num = MISO_PIN,
             .quadhd_io_num = -1,
             .quadwp_io_num = -1,
-//            .max_transfer_sz = 4,
+            .max_transfer_sz = 4,
     };
     ESP_ERROR_CHECK(spi_bus_initialize(SPI_BUS, &buscfg, SPI_DMA_DISABLED));
 
@@ -211,6 +211,20 @@ void spi_dev_init(void) {
     spi_dev_cfg.post_cb = NULL;
     ESP_ERROR_CHECK(spi_bus_add_device(SPI_BUS, &spi_dev_cfg, &mt6701_dev));
 
-    drv8311_init(&drv8311, tSPI, 0x0, drv8311_spi_trans);
+    drv8311_cfg_t drv8311_cfg = {
+            .pwmcnt_mode = UP_DOWN,
+            .sync_mode = SYNC_DISABLE,
+            .portal = tSPI,
+            .csa_gain = CSA_GAIN_2000MV,
+
+            .pwm_period = 400,
+            .use_csa = 1,
+            .dev_id = 0x0,
+            .parity_check = 0,
+
+            .spi_trans = drv8311_spi_trans,
+    };
+
+    drv8311_init(&drv8311, &drv8311_cfg);
     mt6701_init(&mt6701, mt6701_spi_trans);
 }

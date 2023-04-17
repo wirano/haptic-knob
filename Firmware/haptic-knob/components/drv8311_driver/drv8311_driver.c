@@ -127,25 +127,25 @@ drv8311_transmit(drv8311_handle_t handle, uint8_t *send_data, uint8_t send_len, 
         SWAP(send_data[i], send_data[send_len - 1 - i]);
     }
 
-    handle->spi_trans(send_data, send_len, rec_data, rec_len);
+    handle->interface.spi_trans(send_data, send_len, rec_data, rec_len);
 
     // swap to little-endian
     SWAP(rec_data[0], rec_data[2]);
 }
 
-void drv8311_write(drv8311_handle_t handle, uint8_t reg, uint16_t data) {
+static void drv8311_write(drv8311_handle_t handle, uint8_t reg, uint16_t data) {
     drv8311_recv_pkg_t rec;
 
-    if (handle->protel == SPI) {
+    if (handle->interface.protel == SPI) {
         drv8311_spi_send_pkg_t data_pkg;
         data_pkg.header = drv8311_spi_header_gen(RW_CTRL_WRITE, reg);
         data_pkg.data.data = data;
         data_pkg.data.parity = parity_even_calc(data);
 
         drv8311_transmit(handle, data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
-    } else if (handle->protel == tSPI) {
+    } else if (handle->interface.protel == tSPI) {
         drv8311_tspi_send_pkg_t data_pkg;
-        data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_WRITE, reg, handle->devicd_id);
+        data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_WRITE, reg, handle->interface.devicd_id);
         data_pkg.data.data = data;
         data_pkg.data.parity = parity_even_calc(data);
 
@@ -153,36 +153,67 @@ void drv8311_write(drv8311_handle_t handle, uint8_t reg, uint16_t data) {
     }
 }
 
-uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
+static uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
     drv8311_recv_pkg_t rec;
 
-    if (handle->protel == SPI) {
+    if (handle->interface.protel == SPI) {
         drv8311_spi_send_pkg_t data_pkg;
         data_pkg.header = drv8311_spi_header_gen(RW_CTRL_READ, reg);
         data_pkg.data.data = 0xffff >> 1; // send dummy bits
         data_pkg.data.parity = parity_even_calc(data_pkg.data.data);
 
         drv8311_transmit(handle, data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
-    } else if (handle->protel == tSPI) {
+    } else if (handle->interface.protel == tSPI) {
         drv8311_tspi_send_pkg_t data_pkg;
-        data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_READ, reg, handle->devicd_id);
+        data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_READ, reg, handle->interface.devicd_id);
         data_pkg.data.data = 0xffff >> 1; // send dummy bits
         data_pkg.data.parity = parity_even_calc(data_pkg.data.data);
 
         drv8311_transmit(handle, data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
     }
 
+    if (handle->interface.parity_check) {
+        //todo
+    }
+
     return rec.data;
 }
 
-void drv8311_init(drv8311_handle_t *handle, drv8311_protal_e portal, uint8_t device_id,
-                  void (*spi_trans)(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, uint8_t rec_len)) {
-
+void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg) {
+    drv8311_reg_t reg;
     drv8311_instance_t *dev = malloc(sizeof(drv8311_instance_t));
 
-    dev->protel = portal;
-    dev->devicd_id = device_id;
-    dev->spi_trans = spi_trans;
+    dev->interface.protel = cfg->portal;
+    dev->interface.devicd_id = cfg->dev_id;
+    dev->interface.parity_check = cfg->parity_check;
+    dev->interface.spi_trans = cfg->spi_trans;
+
+    reg.half_word = 0;
+    dev->pwm_gen.mode = cfg->pwmcnt_mode;
+    reg.pwmg_ctrl.pwmcntr_mode = cfg->pwmcnt_mode;
+    reg.pwmg_ctrl.pwm_osc_sync = cfg->sync_mode;
+    if (cfg->sync_mode == USE_SPI_CLK) {
+        reg.pwmg_ctrl.spiclk_freq_sync = cfg->spi_clk;
+        reg.pwmg_ctrl.spisync_acrcy = cfg->spi_sync_clks;
+    }
+    drv8311_write(dev, DRV8311_PWMG_CTRL_ADDR, reg.half_word);
+
+    reg.half_word = 0;
+    dev->pwm_gen.period = cfg->pwm_period;
+    reg.pwmg_period.pwm_prd_out = cfg->pwm_period;
+    drv8311_write(dev, DRV8311_PWMG_PERIOD_ADDR, reg.half_word);
+
+    reg.half_word = 0;
+    if (cfg->use_csa) {
+        reg.csa_ctrl.csa_en = 1;
+        reg.csa_ctrl.csa_gain = cfg->csa_gain;
+        drv8311_write(dev, DRV8311_CSA_CTRL_ADDR, reg.half_word);
+    }
+
+    reg.half_word = 0;
+    if (cfg->parity_check) {
+        //todo
+    }
 
     *handle = dev;
 }
@@ -192,4 +223,72 @@ drv8311_dev_sts1_t drv8311_get_status(drv8311_handle_t handle) {
     rec.half_word = drv8311_read(handle, DRV8311_DEV_STS1_ADDR);
 
     return rec.dev_sts1;
+}
+
+uint16_t drv8311_get_sync_period(drv8311_handle_t handle) {
+    drv8311_reg_t rec;
+    rec.half_word = drv8311_read(handle, DRV8311_PWM_SYNC_PRD_ADDR);
+
+    return rec.pwm_sync_prd.pwm_sync_prd;
+}
+
+void drv8311_csa_ctrl(drv8311_handle_t handle, uint8_t en) {
+    drv8311_reg_t csa_ctrl;
+
+    csa_ctrl.half_word = drv8311_read(handle, DRV8311_PWMG_CTRL_ADDR);
+
+    if (en) {
+        csa_ctrl.csa_ctrl.csa_en = 1;
+    } else {
+        csa_ctrl.csa_ctrl.csa_en = 0;
+    }
+
+    drv8311_write(handle, DRV8311_CSA_CTRL_ADDR, csa_ctrl.half_word);
+}
+
+void drv8311_csa_set_gain(drv8311_handle_t handle, DRV8311_CSA_GAIN_t gain) {
+    drv8311_reg_t csa_ctrl;
+
+    csa_ctrl.half_word = drv8311_read(handle, DRV8311_PWMG_CTRL_ADDR);
+
+    csa_ctrl.csa_ctrl.csa_gain = gain;
+
+    drv8311_write(handle, DRV8311_CSA_CTRL_ADDR, csa_ctrl.half_word);
+}
+
+void drv8311_out_ctrl(drv8311_handle_t handle, uint8_t en) {
+    drv8311_reg_t pwmg_ctrl;
+
+    pwmg_ctrl.half_word = drv8311_read(handle, DRV8311_PWMG_CTRL_ADDR);
+
+    if (en) {
+        pwmg_ctrl.pwmg_ctrl.pwm_en = 1;
+    } else {
+        pwmg_ctrl.pwmg_ctrl.pwm_en = 0;
+    }
+
+    drv8311_write(handle, DRV8311_PWMG_CTRL_ADDR, pwmg_ctrl.half_word);
+}
+
+void drv8311_set_period(drv8311_handle_t handle, uint16_t period) {
+    drv8311_reg_t period_reg;
+
+    period_reg.pwmg_period.pwm_prd_out = period;
+    drv8311_write(handle, DRV8311_PWMG_PERIOD_ADDR, period_reg.half_word);
+}
+
+void drv8311_set_duty(drv8311_handle_t handle, float a, float b, float c) {
+    drv8311_reg_t pwmg_duty;
+    uint16_t cmp_a, cmp_b, cmp_c;
+
+    cmp_a = (uint16_t) ((float) handle->pwm_gen.period * a);
+    cmp_b = (uint16_t) ((float) handle->pwm_gen.period * b);
+    cmp_c = (uint16_t) ((float) handle->pwm_gen.period * c);
+
+    pwmg_duty.pwmg_x_duty.pwm_duty_outx = cmp_a;
+    drv8311_write(handle, DRV8311_PWMG_A_DUTY_ADDR, pwmg_duty.half_word);
+    pwmg_duty.pwmg_x_duty.pwm_duty_outx = cmp_b;
+    drv8311_write(handle, DRV8311_PWMG_B_DUTY_ADDR, pwmg_duty.half_word);
+    pwmg_duty.pwmg_x_duty.pwm_duty_outx = cmp_c;
+    drv8311_write(handle, DRV8311_PWMG_C_DUTY_ADDR, pwmg_duty.half_word);
 }

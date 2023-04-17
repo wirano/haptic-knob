@@ -1,5 +1,4 @@
 #include "driver/gpio.h"
-#include "drv8311_reg.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/projdefs.h"
@@ -39,27 +38,18 @@ void app_main(void) {
     gpio_set_level(CFG3, 1);
     gpio_set_level(CFG1, 0);
 
-    drv8311_reg_t rec;
-    rec.half_word = drv8311_read(drv8311, DRV8311_PWMG_PERIOD_ADDR);
-    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
-    rec.half_word = drv8311_read(drv8311, DRV8311_PWMG_A_DUTY_ADDR);
-    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
-    drv8311_write(drv8311, DRV8311_PWMG_PERIOD_ADDR, 400);
-    drv8311_write(drv8311,DRV8311_PWMG_A_DUTY_ADDR,200);
-    rec.half_word = drv8311_read(drv8311, DRV8311_PWMG_PERIOD_ADDR);
-    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
-    rec.half_word = drv8311_read(drv8311, DRV8311_PWMG_A_DUTY_ADDR);
-    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
-    drv8311_write(drv8311, DRV8311_PWMG_CTRL_ADDR, 1U << 10);
-    rec.half_word = drv8311_read(drv8311, DRV8311_PWMG_CTRL_ADDR);
-    ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
-
-
     ESP_LOGI(TAG, "%f\n", mt6701_get_angle(mt6701));
 
+    drv8311_out_ctrl(drv8311, 1);
+
+    float duty = 0;
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(500));
-        rec.half_word = drv8311_read(drv8311, DRV8311_PWM_STATE_ADDR);
-        ESP_LOG_BUFFER_HEX(TAG, &rec, sizeof(rec));
+        duty += 0.1f;
+        if (duty >= 1) {
+            duty = 0;
+        }
+        drv8311_set_duty(drv8311, duty, duty, duty);
+        vTaskDelay(pdMS_TO_TICKS(100));
+//        ESP_LOGI(TAG, "%f\n", mt6701_get_angle(mt6701));
     }
 }
