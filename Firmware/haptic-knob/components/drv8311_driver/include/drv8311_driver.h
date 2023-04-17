@@ -48,6 +48,8 @@ typedef struct {
         uint8_t parity_check;
 
         void (*spi_trans)(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, uint8_t rec_len);
+
+        void (*nsleep_set)(uint8_t level);
     } interface;
 } drv8311_instance_t;
 
@@ -65,12 +67,16 @@ typedef struct {
     uint8_t parity_check;
 
     void (*spi_trans)(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, uint8_t rec_len);
+
+    void (*nsleep_set)(uint8_t level);
 } drv8311_cfg_t;
 
 typedef drv8311_instance_t *drv8311_handle_t;
 
 
 void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg);
+
+void drv8311_nsleep_ctrl(drv8311_handle_t handle, uint8_t level);
 
 drv8311_dev_sts1_t drv8311_get_status(drv8311_handle_t handle);
 
@@ -79,6 +85,9 @@ uint16_t drv8311_get_sync_period(drv8311_handle_t handle);
 void drv8311_csa_ctrl(drv8311_handle_t handle, uint8_t en);
 
 void drv8311_csa_set_gain(drv8311_handle_t handle, DRV8311_CSA_GAIN_t gain);
+
+void drv8311_phase_ctrl(drv8311_handle_t handle, DRV8311_PHASE_MODE_t phase_a, DRV8311_PHASE_MODE_t phase_b,
+                        DRV8311_PHASE_MODE_t phase_c);
 
 void drv8311_out_ctrl(drv8311_handle_t handle, uint8_t en);
 

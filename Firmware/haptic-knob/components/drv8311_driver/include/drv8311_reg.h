@@ -56,6 +56,18 @@ typedef enum {
 } DRV8311_REG_ADDR_t;
 
 /**
+ * @brief Phase Driver Output control
+ */
+typedef enum {
+    PHASE_OFF = 0x0,
+    PHASE_SET_LOW = 0x01,
+    PHASE_SET_HIGH = 0x02,
+    PHASE_LOW_PWM = 0x5,
+    PHASE_HIGH_PWM = 0x6,
+    PHASE_CMP_PWM = 0x7
+} DRV8311_PHASE_MODE_t;
+
+/**
  * @brief PWM GEN counter mode
  */
 typedef enum {
@@ -115,78 +127,78 @@ typedef enum {
  * @brief Device Status 1 Register
  */
 typedef struct {
-    uint16_t fault : 1;
-    uint16_t ot : 1;
-    uint16_t uvp : 1;
-    uint16_t reserved_1 : 2;
-    uint16_t ocp : 1;
-    uint16_t spi_flt : 1;
-    uint16_t reset : 1;
-    uint16_t opt_flt : 1;
-    uint16_t reserved_0 : 6;
-    uint16_t parity_bit : 1;
+    uint16_t fault: 1;
+    uint16_t ot: 1;
+    uint16_t uvp: 1;
+    uint16_t reserved_1: 2;
+    uint16_t ocp: 1;
+    uint16_t spi_flt: 1;
+    uint16_t reset: 1;
+    uint16_t opt_flt: 1;
+    uint16_t reserved_0: 6;
+    uint16_t parity_bit: 1;
 } drv8311_dev_sts1_t;
 
 /**
  * @brief Over Temperature Status Register
  */
 typedef struct {
-    uint16_t otsd : 1;
-    uint16_t otw : 1;
-    uint16_t ots_avdd : 1;
-    uint16_t reserved_0 : 12;
-    uint16_t parity_bit : 1;
+    uint16_t otsd: 1;
+    uint16_t otw: 1;
+    uint16_t ots_avdd: 1;
+    uint16_t reserved_0: 12;
+    uint16_t parity_bit: 1;
 } drv8311_ot_sts_t;
 
 /**
  * @brief Supply Status Register
  */
 typedef struct {
-    uint16_t vinavdd_uv : 1;
-    uint16_t reserved_2 : 1;
-    uint16_t avdd_uv : 1;
-    uint16_t reserved_1 : 1;
-    uint16_t cp_uv : 1;
-    uint16_t csaref_uv : 1;
-    uint16_t reserved_0 : 9;
-    uint16_t parity_bit : 1;
+    uint16_t vinavdd_uv: 1;
+    uint16_t reserved_2: 1;
+    uint16_t avdd_uv: 1;
+    uint16_t reserved_1: 1;
+    uint16_t cp_uv: 1;
+    uint16_t csaref_uv: 1;
+    uint16_t reserved_0: 9;
+    uint16_t parity_bit: 1;
 } drv8311_sup_sts_t;
 
 /**
  * @brief Over Temperature Status Register
  */
 typedef struct {
-    uint16_t ocpa_ls : 1;
-    uint16_t ocpb_ls : 1;
-    uint16_t ocpc_ls : 1;
-    uint16_t reserved_1 : 1;
-    uint16_t ocpa_hs : 1;
-    uint16_t ocpb_hs : 1;
-    uint16_t ocpc_hs : 1;
-    uint16_t reserved_0 : 8;
-    uint16_t parity_bit : 1;
+    uint16_t ocpa_ls: 1;
+    uint16_t ocpb_ls: 1;
+    uint16_t ocpc_ls: 1;
+    uint16_t reserved_1: 1;
+    uint16_t ocpa_hs: 1;
+    uint16_t ocpb_hs: 1;
+    uint16_t ocpc_hs: 1;
+    uint16_t reserved_0: 8;
+    uint16_t parity_bit: 1;
 } drv8311_drv_sts_t;
 
 /**
  * @brief System Status Register
  */
 typedef struct {
-    uint16_t frm_err : 1;
-    uint16_t bus_cnt : 1;
-    uint16_t spi_parity : 1;
-    uint16_t resvered_1 : 1;
-    uint16_t otpld_err : 1;
-    uint16_t reserved_0 : 10;
-    uint16_t parity_bit : 1;
+    uint16_t frm_err: 1;
+    uint16_t bus_cnt: 1;
+    uint16_t spi_parity: 1;
+    uint16_t resvered_1: 1;
+    uint16_t otpld_err: 1;
+    uint16_t reserved_0: 10;
+    uint16_t parity_bit: 1;
 } drv8311_sys_sts_t;
 
 /**
  * @brief PWM Sync Period Register
  */
 typedef struct {
-    uint16_t pwm_sync_prd : 12;
-    uint16_t reserved_0 : 3;
-    uint16_t parity_bit : 1;
+    uint16_t pwm_sync_prd: 12;
+    uint16_t reserved_0: 3;
+    uint16_t parity_bit: 1;
 } drv8311_pwm_sync_prd_t;
 
 
@@ -194,68 +206,66 @@ typedef struct {
  * @brief Fault Mode Register
  */
 typedef struct {
-    uint16_t otsd_mode : 2;
-    uint16_t uvp_mode : 2;
-    uint16_t ocp_mode : 3;
-    uint16_t spiflt_mode : 1;
-    uint16_t otpflt_mode : 1;
-    uint16_t reserved_0 : 6;
-    uint16_t parity_bit : 1;
+    uint16_t otsd_mode: 2;
+    uint16_t uvp_mode: 2;
+    uint16_t ocp_mode: 3;
+    uint16_t spiflt_mode: 1;
+    uint16_t otpflt_mode: 1;
+    uint16_t reserved_0: 6;
+    uint16_t parity_bit: 1;
 } drv8311_flt_mode_t;
-
-#define DRV8311_SYS_FAULT_EN 0U
 
 /**
  * @brief System Fault Control Register
  */
 typedef struct {
-    uint16_t resverd_1 : 5;
-    uint16_t csarefuv_en : 1;
-    uint16_t reserved_1 : 3;
-    uint16_t otw_en : 1;
-    uint16_t otavdd_en : 1;
-    uint16_t reserved_0 : 4;
-    uint16_t parity_bit : 1;
+    uint16_t resverd_1: 5;
+    uint16_t csarefuv_en: 1;
+    uint16_t reserved_1: 3;
+    uint16_t otw_en: 1;
+    uint16_t otavdd_en: 1;
+    uint16_t reserved_0: 4;
+    uint16_t parity_bit: 1;
 } drv8311_sysf_ctrl_t;
 
 /**
  * @brief Driver Fault Control Register
  */
 typedef struct {
-    uint16_t ocp_lvl : 1;
-    uint16_t reserved_1 : 1;
-    uint16_t ocp_tblank : 2;
-    uint16_t ocp_deg : 2;
-    uint16_t reserved_0 : 9;
-    uint16_t parity_bit : 1;
+    uint16_t ocp_lvl: 1;
+    uint16_t reserved_1: 1;
+    uint16_t ocp_tblank: 2;
+    uint16_t ocp_deg: 2;
+    uint16_t reserved_0: 9;
+    uint16_t parity_bit: 1;
 } drv8311_drvf_ctrl_t;
 
 /**
  * @brief Fault Timing Control Register
  */
 typedef struct {
-    uint16_t fast_tretry : 2;
-    uint16_t slow_tretry : 2;
-    uint16_t reserved_0 : 11;
-    uint16_t parity_bit : 1;
+    uint16_t fast_tretry: 2;
+    uint16_t slow_tretry: 2;
+    uint16_t reserved_0: 11;
+    uint16_t parity_bit: 1;
 } drv8311_flt_tctrl_t;
 
 /**
  * @brief Fault Clear Register
  */
 typedef struct {
-    uint16_t flt_clr : 1;
-    uint16_t reserved_0 : 14;
-    uint16_t parity_bit : 1;
+    uint16_t flt_clr: 1;
+    uint16_t reserved_0: 14;
+    uint16_t parity_bit: 1;
 } drv8311_flt_ctrl_t;
 
 /**
  * @brief PWM_GEN Period Register
  */
 typedef struct {
-    uint16_t pwm_prd_out : 12;
-    uint16_t reserved_0 : 3;
-    uint16_t parity_bit : 1;
+    uint16_t pwm_prd_out: 12;
+    uint16_t reserved_0: 3;
+    uint16_t parity_bit: 1;
 } drv8311_pwmg_period_t;
 
 /**
@@ -263,80 +273,80 @@ typedef struct {
  * x can be A, B,C
  */
 typedef struct {
-    uint16_t pwm_duty_outx : 12;
-    uint16_t reserved_0 : 3;
-    uint16_t parity_bit : 1;
+    uint16_t pwm_duty_outx: 12;
+    uint16_t reserved_0: 3;
+    uint16_t parity_bit: 1;
 } drv8311_pwmg_x_duty_t;
 
 /**
  * @brief PWM State Register
  */
 typedef struct {
-    uint16_t pwma_state : 3;
-    uint16_t reserved_2 : 1;
-    uint16_t pwmb_state : 3;
-    uint16_t reserved_1 : 1;
-    uint16_t pwmc_state : 3;
-    uint16_t reserved_0 : 4;
-    uint16_t parity_bit : 1;
+    uint16_t pwma_state: 3;
+    uint16_t reserved_2: 1;
+    uint16_t pwmb_state: 3;
+    uint16_t reserved_1: 1;
+    uint16_t pwmc_state: 3;
+    uint16_t reserved_0: 4;
+    uint16_t parity_bit: 1;
 } drv8311_pwm_state_t;
 
 /**
  * @brief PWM_GEN Control Register
  */
 typedef struct {
-    uint16_t spisync_acrcy : 2;
-    uint16_t spiclk_freq_sync : 3;
-    uint16_t pwm_osc_sync : 3;
-    uint16_t pwmcntr_mode : 2;
-    uint16_t pwm_en : 1;
-    uint16_t reserved_0 : 4;
-    uint16_t parity_bit : 1;
+    uint16_t spisync_acrcy: 2;
+    uint16_t spiclk_freq_sync: 3;
+    uint16_t pwm_osc_sync: 3;
+    uint16_t pwmcntr_mode: 2;
+    uint16_t pwm_en: 1;
+    uint16_t reserved_0: 4;
+    uint16_t parity_bit: 1;
 } drv8311_pwmg_ctrl_t;
 
 /**
  * @brief PWM Control Register 1
  */
 typedef struct {
-    uint16_t pwm_mode : 2;
-    uint16_t ssc_dis : 1;
-    uint16_t reserved_0 : 12;
-    uint16_t parity_bit : 1;
+    uint16_t pwm_mode: 2;
+    uint16_t ssc_dis: 1;
+    uint16_t reserved_0: 12;
+    uint16_t parity_bit: 1;
 } drv8311_pwm_ctrl1_t;
 
 /**
  * @brief Predriver control Register
  */
 typedef struct {
-    uint16_t slew_rate : 2;
-    uint16_t reserved_1 : 2;
-    uint16_t tdead_ctrl : 3;
-    uint16_t dlycmp_en : 1;
-    uint16_t reserved_0 : 7;
-    uint16_t parity_bit : 1;
+    uint16_t slew_rate: 2;
+    uint16_t reserved_1: 2;
+    uint16_t tdead_ctrl: 3;
+    uint16_t dlycmp_en: 1;
+    uint16_t reserved_0: 7;
+    uint16_t parity_bit: 1;
 } drv8311_drv_ctrl_t;
 
 /**
  * @brief CSA Control Register
  */
 typedef struct {
-    uint16_t csa_gain : 2;
-    uint16_t reserved_1 : 1;
-    uint16_t csa_en : 1;
-    uint16_t reserved_0 : 11;
-    uint16_t parity_bit : 1;
+    uint16_t csa_gain: 2;
+    uint16_t reserved_1: 1;
+    uint16_t csa_en: 1;
+    uint16_t reserved_0: 11;
+    uint16_t parity_bit: 1;
 } drv8311_csa_ctrl_t;
 
 /**
  * @brief System Control Registe
  */
 typedef struct {
-    uint16_t reserved_1 : 6;
-    uint16_t spi_pen : 1;
-    uint16_t reg_lock : 1;
-    uint16_t reserved_0 : 4;
-    uint16_t write_key : 3;
-    uint16_t parity_bit : 1;
+    uint16_t reserved_1: 6;
+    uint16_t spi_pen: 1;
+    uint16_t reg_lock: 1;
+    uint16_t reserved_0: 4;
+    uint16_t write_key: 3;
+    uint16_t parity_bit: 1;
 } drv8311_sys_ctrl_t;
 
 typedef union {

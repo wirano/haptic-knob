@@ -36,7 +36,7 @@
 #include "drv8311_driver.h"
 
 #define SPI_BUS SPI3_HOST
-#define SPI_FREQ SPI_MASTER_FREQ_8M
+#define SPI_FREQ SPI_MASTER_FREQ_10M
 #define SPI_CLK_PIN 40U
 #define MOSI_PIN 41U
 #define MISO_PIN 42U
@@ -120,6 +120,10 @@ void mt6701_spi_trans(uint8_t *rec_data, uint8_t rec_len) {
     spi_device_release_bus(mt6701_dev);
 }
 
+void drv8311_nsleep_set (uint8_t level){
+    gpio_set_level(DRV8311_NSLEEP_PIN,level);
+}
+
 static void spi_dev_gpio_init(void) {
     gpio_config_t gpio_conf = {
             .mode = GPIO_MODE_OUTPUT,
@@ -137,7 +141,7 @@ static void spi_dev_gpio_init(void) {
 
     gpio_conf.pin_bit_mask = 1ULL << DRV8311_NSLEEP_PIN; // drv8311 nsleep
     gpio_config(&gpio_conf);
-    gpio_set_level(DRV8311_NSLEEP_PIN, 1);
+    gpio_set_level(DRV8311_NSLEEP_PIN, 0);
 
     // generate 20kHZ PWM for DRV8311 PWM SYNC
     mcpwm_timer_config_t timer_config = {
@@ -223,6 +227,7 @@ void spi_dev_init(void) {
             .parity_check = 0,
 
             .spi_trans = drv8311_spi_trans,
+            .nsleep_set = drv8311_nsleep_set
     };
 
     drv8311_init(&drv8311, &drv8311_cfg);

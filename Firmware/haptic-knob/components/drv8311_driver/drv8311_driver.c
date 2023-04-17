@@ -36,23 +36,23 @@
 
 
 typedef struct {
-    uint8_t parity : 1;
-    uint8_t addr : 6;
-    uint8_t rw_ctrl : 1;
+    uint8_t parity: 1;
+    uint8_t addr: 6;
+    uint8_t rw_ctrl: 1;
 } drv8311_spi_send_header_t;
 
 typedef struct {
-    uint16_t parity : 1;
-    uint16_t zero_1 : 2;
-    uint16_t addr : 8;
-    uint16_t device_id : 2;
-    uint16_t zero_0 : 2;
-    uint16_t rw_ctrl : 1;
+    uint16_t parity: 1;
+    uint16_t zero_1: 2;
+    uint16_t addr: 8;
+    uint16_t device_id: 2;
+    uint16_t zero_0: 2;
+    uint16_t rw_ctrl: 1;
 } drv8311_tspi_send_header_t;
 
 typedef struct {
-    uint16_t data : 15;
-    uint16_t parity : 1;
+    uint16_t data: 15;
+    uint16_t parity: 1;
 } drv8311_send_data_t;
 
 typedef union {
@@ -187,6 +187,9 @@ void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg) {
     dev->interface.devicd_id = cfg->dev_id;
     dev->interface.parity_check = cfg->parity_check;
     dev->interface.spi_trans = cfg->spi_trans;
+    dev->interface.nsleep_set = cfg->nsleep_set;
+
+    drv8311_nsleep_ctrl(dev, 1);
 
     reg.half_word = 0;
     dev->pwm_gen.mode = cfg->pwmcnt_mode;
@@ -216,6 +219,10 @@ void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg) {
     }
 
     *handle = dev;
+}
+
+void drv8311_nsleep_ctrl(drv8311_handle_t handle, uint8_t level) {
+    handle->interface.nsleep_set(level);
 }
 
 drv8311_dev_sts1_t drv8311_get_status(drv8311_handle_t handle) {
@@ -254,6 +261,17 @@ void drv8311_csa_set_gain(drv8311_handle_t handle, DRV8311_CSA_GAIN_t gain) {
     csa_ctrl.csa_ctrl.csa_gain = gain;
 
     drv8311_write(handle, DRV8311_CSA_CTRL_ADDR, csa_ctrl.half_word);
+}
+
+void drv8311_phase_ctrl(drv8311_handle_t handle, DRV8311_PHASE_MODE_t phase_a, DRV8311_PHASE_MODE_t phase_b,
+                        DRV8311_PHASE_MODE_t phase_c) {
+    drv8311_reg_t phase_ctrl;
+
+    phase_ctrl.pwm_state.pwma_state = phase_a;
+    phase_ctrl.pwm_state.pwmb_state = phase_b;
+    phase_ctrl.pwm_state.pwmc_state = phase_c;
+
+    drv8311_write(handle, DRV8311_PWM_STATE_ADDR, phase_ctrl.half_word);
 }
 
 void drv8311_out_ctrl(drv8311_handle_t handle, uint8_t en) {
