@@ -34,5 +34,8 @@
 #define _SQRT2_SQRT3 0
 #define _1_SQRT2 0
 #define _SQRT2 0
+#define _2PI 0
+#define _PI_2 0
+#define _PI_3 0
 
 #endif //MATH_TABLE_H

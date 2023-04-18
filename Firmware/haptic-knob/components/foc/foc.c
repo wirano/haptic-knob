@@ -25,8 +25,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "foc.h"
+#include "foc_utils.h"
 #include "math_table.h"
 #include "pid.h"
+
 
 void static dqz_trans(foc_handler_t handler) {
     float i_alpha, i_beta;
@@ -62,12 +64,23 @@ void static dqz_trans(foc_handler_t handler) {
     handler->data.i_q = co * i_alpha - si * i_beta;
 }
 
-void static svpwm_output(foc_handler_t handler){
+void static svpwm_output(foc_handler_t handler) {
     uint8_t sector = 0;
-    float u_a,u_b,u_c,u_vec;
+    float angle_elec;
+    float u_a, u_b, u_c, u_ref;
 
-    float u_2 = handler->data.u_alpha * handler->data.u_alpha + handler->data.u_beta * handler->data.u_beta;
-    u_vec = sqrtf(u_2) / (float)handler->motor.volt;
+    if (handler->data.u_alpha != 0) {
+        u_ref = handler->data.u_alpha * handler->data.u_alpha + handler->data.u_beta * handler->data.u_beta;
+        u_ref = sqrtf(u_ref) / handler->motor.volt;
+
+        angle_elec = angle_normalize(handler->data.angle_elec) + atan2f(handler->data.u_alpha, handler->data.u_beta);
+    } else {
+        u_ref = handler->data.u_beta / handler->motor.volt;
+
+        angle_elec = angle_normalize(handler->data.angle_elec + _PI_2);
+    }
+
+    sector = (uint8_t) floorf(angle_elec / _PI_3) + 1;
 
     switch (sector) {
         case 1:

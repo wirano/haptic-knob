@@ -40,7 +40,7 @@ struct foc_instance_t {
     foc_hal_t hal;
     struct {
         uint8_t pole_pairs;
-        uint8_t volt;
+        float volt;
     }motor;
     struct {
         float angle_abs;
