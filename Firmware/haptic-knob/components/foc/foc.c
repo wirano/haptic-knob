@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include "foc.h"
 #include "math_table.h"
+#include "pid.h"
 
 void static dqz_trans(foc_handler_t handler) {
     float i_alpha, i_beta;
