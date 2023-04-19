@@ -28,6 +28,7 @@
 #ifndef MATH_TABLE_H
 #define MATH_TABLE_H
 
+#define _SQRT3 0
 #define _1_SQRT3 0
 #define _2_SQRT3 0
 #define _SQRT3_2 0

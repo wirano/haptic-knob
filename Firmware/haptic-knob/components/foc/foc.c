@@ -22,8 +22,6 @@
 //
 
 #include <math.h>
-#include <stdint.h>
-#include <stdio.h>
 #include "foc.h"
 #include "foc_utils.h"
 #include "math_table.h"
@@ -65,9 +63,8 @@ void static dqz_trans(foc_handler_t handler) {
 }
 
 void static svpwm_output(foc_handler_t handler) {
-    uint8_t sector = 0;
     float angle_elec;
-    float u_a, u_b, u_c, u_ref;
+    float u_ref;
 
     if (handler->data.u_alpha != 0) {
         u_ref = handler->data.u_alpha * handler->data.u_alpha + handler->data.u_beta * handler->data.u_beta;
@@ -80,28 +77,52 @@ void static svpwm_output(foc_handler_t handler) {
         angle_elec = angle_normalize(handler->data.angle_elec + _PI_2);
     }
 
-    sector = (uint8_t) floorf(angle_elec / _PI_3) + 1;
+    uint8_t sector = (uint8_t) floorf(angle_elec / _PI_3) + 1;
 
+    float alpha = angle_elec - (float) sector * _PI_3;
+    float T1 = _SQRT3 * u_ref * sinf(_PI_3 - alpha);
+    float T2 = _SQRT3 * u_ref * sinf(alpha);
+    float T0 = 1.f - T1 - T2;
+
+    float Ta, Tb, Tc;
     switch (sector) {
         case 1:
+            Ta = T1 + T2 + T0 / 2;
+            Tb = T2 + T0 / 2;
+            Tc = T0 / 2;
             break;
         case 2:
+            Ta = T1 + T0 / 2;
+            Tb = T1 + T2 + T0 / 2;
+            Tc = T0 / 2;
             break;
         case 3:
+            Ta = T0 / 2;
+            Tb = T1 + T2 + T0 / 2;
+            Tc = T2 + T0 / 2;
             break;
         case 4:
+            Ta = T0 / 2;
+            Tb = T1 + T0 / 2;
+            Tc = T1 + T2 + T0 / 2;
             break;
         case 5:
+            Ta = T2 + T0 / 2;
+            Tb = T0 / 2;
+            Tc = T1 + T2 + T0 / 2;
             break;
         case 6:
+            Ta = T1 + T2 + T0 / 2;
+            Tb = T0 / 2;
+            Tc = T1 + T0 / 2;
             break;
         default:
-            u_a = 0;
-            u_b = 0;
-            u_c = 0;
+            Ta = 0;
+            Tb = 0;
+            Tc = 0;
     }
 
-    handler->hal.set_pwm(u_a, u_b, u_c);
+    handler->hal.set_pwm(Ta, Tb, Tc);
 }
 
 void foc_loop(foc_handler_t handler) {
