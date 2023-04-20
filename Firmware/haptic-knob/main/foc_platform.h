@@ -31,6 +31,8 @@
 #include "drv8311_driver.h"
 #include "mt6701_driver.h"
 
+extern int adc_raw[3];
+
 extern drv8311_handle_t drv8311;
 extern mt6701_handle_t mt6701;
 

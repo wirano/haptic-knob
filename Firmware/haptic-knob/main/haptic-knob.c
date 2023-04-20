@@ -7,7 +7,7 @@
 #include "lv_port.h"
 #include "drv8311_driver.h"
 #include "mt6701_driver.h"
-#include "spi.h"
+#include "foc_peripherals.h"
 
 #define CFG1    17U
 #define CFG2    18U
@@ -38,17 +38,15 @@ void app_main(void) {
     gpio_set_level(CFG3, 1);
     gpio_set_level(CFG1, 0);
 
-    ESP_LOGI(TAG, "%f\n", mt6701_get_angle(mt6701));
+    ESP_LOGI(TAG, "%f\n", mt6701_get_angle_deg(mt6701));
 
     drv8311_out_ctrl(drv8311, 1);
 
-    float duty = 0;
+    float duty = 0.1f;
+    drv8311_set_duty(drv8311, duty, 0, 0);
+
     while (1) {
-        duty += 0.1f;
-        if (duty >= 1) {
-            duty = 0;
-        }
-        drv8311_set_duty(drv8311, duty, duty, duty);
+        ESP_LOGI(TAG, "%d %d %d", adc_raw[0], adc_raw[1], adc_raw[2]);
         vTaskDelay(pdMS_TO_TICKS(100));
 //        ESP_LOGI(TAG, "%f\n", mt6701_get_angle(mt6701));
     }

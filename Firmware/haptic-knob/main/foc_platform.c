@@ -25,15 +25,23 @@
 // Created by wirano on 23-4-5.
 //
 
+#include <stdint.h>
 #include <string.h>
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "driver/mcpwm_prelude.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+#include "esp_private/adc_private.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "spi.h"
+#include "esp_vfs.h"
+#include "foc_platform.h"
+#include "hal/adc_types.h"
 #include "mt6701_driver.h"
 #include "drv8311_driver.h"
+#include "foc.h"
 
 #define SPI_BUS SPI3_HOST
 #define SPI_FREQ SPI_MASTER_FREQ_10M
@@ -46,6 +54,10 @@
 #define DRV8311_NSLEEP_PIN 39U
 #define DRV8311_PWM_SYNC_PIN 1U
 
+#define PHASE_A_CH ADC_CHANNEL_5
+#define PHASE_B_CH ADC_CHANNEL_4
+#define PHASE_C_CH ADC_CHANNEL_3
+
 #define SWAP(x, y) do { (x) ^= (y); (y) ^= (x); (x) ^= (y); } while (0)
 
 #define TAG "spi"
@@ -57,6 +69,10 @@ mcpwm_timer_handle_t mcpwm_timer;
 mcpwm_oper_handle_t mcpwm_oper;
 mcpwm_cmpr_handle_t mcpwm_cmp;
 mcpwm_gen_handle_t mcpwm_gen;
+
+adc_oneshot_unit_handle_t adc1_handle;
+adc_cali_handle_t adc1_cali_handle;
+int adc_raw[3];
 
 drv8311_handle_t drv8311;
 mt6701_handle_t mt6701;
@@ -120,35 +136,48 @@ void mt6701_spi_trans(uint8_t *rec_data, uint8_t rec_len) {
     spi_device_release_bus(mt6701_dev);
 }
 
-void drv8311_nsleep_set (uint8_t level){
-    gpio_set_level(DRV8311_NSLEEP_PIN,level);
+void drv8311_nsleep_set(uint8_t level) {
+    gpio_set_level(DRV8311_NSLEEP_PIN, level);
 }
 
-static void spi_dev_gpio_init(void) {
-    gpio_config_t gpio_conf = {
-            .mode = GPIO_MODE_OUTPUT,
-            .intr_type = GPIO_INTR_DISABLE,
-            .pull_down_en = false,
-            .pull_up_en = false,
-    };
+IRAM_ATTR bool
+current_oneshot(mcpwm_cmpr_handle_t comparator, const mcpwm_compare_event_data_t *edata, void *user_ctx) {
+    adc_oneshot_read_isr(adc1_handle, PHASE_A_CH, &adc_raw[0]);
+    adc_oneshot_read_isr(adc1_handle, PHASE_B_CH, &adc_raw[1]);
+    adc_oneshot_read_isr(adc1_handle, PHASE_C_CH, &adc_raw[2]);
 
-//    gpio_conf.pin_bit_mask = 1ULL << MT6701_CS_PIN;  // mt6701 cs
-//    gpio_config(&gpio_conf);
+    return true;
+}
 
-//    gpio_conf.pin_bit_mask = 1ULL << DRV8311_CS_PIN;  // drv8311 cs
-//    gpio_config(&gpio_conf);
-//    gpio_set_level(DRV8311_CS_PIN,1);
+void foc_setpwm(float duty_a, float duty_b, float duty_c) {
+    drv8311_set_duty(drv8311, duty_a, duty_b, duty_c);
+}
 
-    gpio_conf.pin_bit_mask = 1ULL << DRV8311_NSLEEP_PIN; // drv8311 nsleep
-    gpio_config(&gpio_conf);
-    gpio_set_level(DRV8311_NSLEEP_PIN, 0);
+void foc_drver_enable(uint8_t en) {
+    if (en) {
+        drv8311_out_ctrl(drv8311, 1);
+    } else {
+        drv8311_set_duty(drv8311, 0, 0, 0);
+        drv8311_out_ctrl(drv8311, 0);
+    }
+}
 
+void foc_update_sensors(foc_handler_t handler) {
+    float angle = mt6701_get_angle_rad(mt6701);
+    int volt;
+
+    handler->sensors.angle_abs = angle;
+
+    //todo: current
+}
+
+static void sync_pwm_init(void) {
     // generate 20kHZ PWM for DRV8311 PWM SYNC
     mcpwm_timer_config_t timer_config = {
             .group_id = 0,
             .clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT,
             .resolution_hz = 10 * 1000 * 1000,
-            .period_ticks = (10 * 1000 * 1000) / (20 * 1000),
+            .period_ticks = (10 * 1000 * 1000) / (10 * 1000),
             .count_mode = MCPWM_TIMER_COUNT_MODE_UP,
     };
     ESP_ERROR_CHECK(mcpwm_new_timer(&timer_config, &mcpwm_timer));
@@ -181,12 +210,66 @@ static void spi_dev_gpio_init(void) {
                                                                                 MCPWM_GEN_ACTION_LOW),
                                                  MCPWM_GEN_COMPARE_EVENT_ACTION_END());
 
+    // sampling current on falling edge (low side FET on)
+    mcpwm_comparator_event_callbacks_t cmp_cb = {
+            .on_reach = current_oneshot
+    };
+    mcpwm_comparator_register_event_callbacks(mcpwm_cmp, &cmp_cb, NULL);
+
     ESP_ERROR_CHECK(mcpwm_timer_enable(mcpwm_timer));
     ESP_ERROR_CHECK(mcpwm_timer_start_stop(mcpwm_timer, MCPWM_TIMER_START_NO_STOP));
 }
 
+static void adc_init(void) {
+    //-------------ADC1 Init---------------//
+    adc_oneshot_unit_init_cfg_t init_config1 = {
+            .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &adc1_handle));
+
+    //-------------ADC1 Config---------------//
+    adc_oneshot_chan_cfg_t config = {
+            .bitwidth = ADC_BITWIDTH_12,
+            .atten = ADC_ATTEN_DB_11,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PHASE_A_CH, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PHASE_B_CH, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PHASE_C_CH, &config));
+
+    //-------------ADC1 Calibration Init---------------//
+    ESP_LOGI(TAG, "calibration scheme version is %s", "Curve Fitting");
+    adc_cali_curve_fitting_config_t cali_config = {
+            .unit_id = ADC_UNIT_1,
+            .atten = ADC_ATTEN_DB_11,
+            .bitwidth = ADC_BITWIDTH_12,
+    };
+    ESP_ERROR_CHECK(adc_cali_create_scheme_curve_fitting(&cali_config, &adc1_cali_handle));
+}
+
+static void spi_dev_gpio_init(void) {
+    gpio_config_t gpio_conf = {
+            .mode = GPIO_MODE_OUTPUT,
+            .intr_type = GPIO_INTR_DISABLE,
+            .pull_down_en = false,
+            .pull_up_en = false,
+    };
+
+//    gpio_conf.pin_bit_mask = 1ULL << MT6701_CS_PIN;  // mt6701 cs
+//    gpio_config(&gpio_conf);
+
+//    gpio_conf.pin_bit_mask = 1ULL << DRV8311_CS_PIN;  // drv8311 cs
+//    gpio_config(&gpio_conf);
+//    gpio_set_level(DRV8311_CS_PIN,1);
+
+    gpio_conf.pin_bit_mask = 1ULL << DRV8311_NSLEEP_PIN; // drv8311 nsleep
+    gpio_config(&gpio_conf);
+    gpio_set_level(DRV8311_NSLEEP_PIN, 0);
+}
+
 void spi_dev_init(void) {
     spi_dev_gpio_init();
+    adc_init();
+    sync_pwm_init();
 
     spi_bus_config_t buscfg = {
             .sclk_io_num = SPI_CLK_PIN,
@@ -217,11 +300,11 @@ void spi_dev_init(void) {
 
     drv8311_cfg_t drv8311_cfg = {
             .pwmcnt_mode = UP_DOWN,
-            .sync_mode = SYNC_DISABLE,
+            .sync_mode = SET_PWM_PERIOD,
             .portal = tSPI,
             .csa_gain = CSA_GAIN_2000MV,
 
-            .pwm_period = 400,
+//            .pwm_period = 400,
             .use_csa = 1,
             .dev_id = 0x0,
             .parity_check = 0,
@@ -232,4 +315,7 @@ void spi_dev_init(void) {
 
     drv8311_init(&drv8311, &drv8311_cfg);
     mt6701_init(&mt6701, mt6701_spi_trans);
+
+    // update drv8311 pwm period (used to calculate duty)
+    drv8311_update_synced_period(drv8311);
 }
