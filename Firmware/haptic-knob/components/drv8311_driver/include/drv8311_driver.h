@@ -80,7 +80,7 @@ void drv8311_nsleep_ctrl(drv8311_handle_t handle, uint8_t level);
 
 drv8311_dev_sts1_t drv8311_get_status(drv8311_handle_t handle);
 
-uint16_t drv8311_get_sync_period(drv8311_handle_t handle);
+uint16_t drv8311_update_synced_period(drv8311_handle_t handle);
 
 void drv8311_csa_ctrl(drv8311_handle_t handle, uint8_t en);
 

@@ -232,9 +232,11 @@ drv8311_dev_sts1_t drv8311_get_status(drv8311_handle_t handle) {
     return rec.dev_sts1;
 }
 
-uint16_t drv8311_get_sync_period(drv8311_handle_t handle) {
+uint16_t drv8311_update_synced_period(drv8311_handle_t handle) {
     drv8311_reg_t rec;
     rec.half_word = drv8311_read(handle, DRV8311_PWM_SYNC_PRD_ADDR);
+
+    handle->pwm_gen.period = rec.pwm_sync_prd.pwm_sync_prd;
 
     return rec.pwm_sync_prd.pwm_sync_prd;
 }
