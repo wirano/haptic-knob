@@ -31,7 +31,11 @@
 #include <stdint.h>
 #include <string.h>
 
+
+#define _2PI 6.28318530718f
+
 #define TAG "mt6701"
+
 
 typedef union {
     struct __attribute__((__packed__)) {
@@ -113,7 +117,7 @@ void mt6701_init(mt6701_handle_t *handle, void (*ssi_read)(uint8_t *rec_buffer, 
     *handle = dev;
 }
 
-float mt6701_get_angle(mt6701_handle_t handle) {
+float mt6701_get_angle_deg(mt6701_handle_t handle) {
     mt6701_rec_data_t *temp;
 
     mt6701_read_data(handle);
@@ -121,4 +125,14 @@ float mt6701_get_angle(mt6701_handle_t handle) {
     temp = (mt6701_rec_data_t *) handle->data_raw;
 
     return (float) temp->angle / 16384.f * 360.f;
+}
+
+float mt6701_get_angle_rad(mt6701_handle_t handle) {
+    mt6701_rec_data_t *temp;
+
+    mt6701_read_data(handle);
+
+    temp = (mt6701_rec_data_t *) handle->data_raw;
+
+    return (float) temp->angle / 16384.f * _2PI;
 }

@@ -44,6 +44,8 @@ typedef mt6701_instance_t *mt6701_handle_t;
 
 void mt6701_init(mt6701_handle_t *handle, void (*ssi_read)(uint8_t *rec_buffer, uint8_t rec_len));
 
-float mt6701_get_angle(mt6701_handle_t handle);
+float mt6701_get_angle_deg(mt6701_handle_t handle);
+
+float mt6701_get_angle_rad(mt6701_handle_t handle);
 
 #endif //MT6701_DRIVER_H
