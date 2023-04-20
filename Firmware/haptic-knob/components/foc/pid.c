@@ -27,7 +27,6 @@
 
 #include "pid.h"
 #include <math.h>
-#include <stdint.h>
 
 
 float PID_IncrementalRealize(pid_incremental_t *PID, float inVal, float target) {

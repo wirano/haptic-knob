@@ -21,6 +21,7 @@
 // SOFTWARE.
 //
 
+#include "pid.h"
 #include <stdint.h>
 
 typedef struct foc_hal_t foc_hal_t;
@@ -28,22 +29,45 @@ typedef struct foc_hal_t foc_hal_t;
 typedef struct foc_instance_t foc_instance_t;
 typedef foc_instance_t *foc_handler_t;
 
+typedef struct {
+    uint8_t pole_pairs;
+    float motor_volt;
+    pid_incremental_t *current_q;
+    pid_incremental_t *current_d;
+    pid_incremental_t *velocity_loop;
+    pid_incremental_t *angle_loop;
+
+    void (*delay)(uint32_t ms);
+
+    void (*update_sensors)(foc_handler_t handler);
+
+    void (*driver_enable)(uint8_t en);
+
+    void (*set_pwm)(float duty_a, float duty_b, float duty_c);
+} foc_config_t;
+
 struct foc_hal_t {
     void (*delay)(uint32_t ms);
 
     void (*update_sensors)(foc_handler_t handler);
 
-    void (*set_pwm)(float u_a, float u_b, float u_c);
+    void (*driver_enable)(uint8_t en);
+
+    void (*set_pwm)(float duty_a, float duty_b, float duty_c);
 };
 
 struct foc_instance_t {
     foc_hal_t hal;
     struct {
+        uint8_t enabled;
+    } status;
+    struct {
         uint8_t pole_pairs;
         float volt;
-    }motor;
+    } motor;
     struct {
-        float angle_abs;
+        float angle_abs; // absolut angle in radian
+        float angle_zero_offset;
         float i_a;
         float i_b;
         float i_c;
@@ -51,11 +75,22 @@ struct foc_instance_t {
     struct {
         float i_q;
         float i_d;
-        float u_alpha;
-        float u_beta;
+        float u_q;
+        float u_d;
         float angle_mech;
         float angle_elec;
     } data;
+    struct {
+        pid_incremental_t *current_q;
+        pid_incremental_t *current_d;
+        pid_incremental_t *velocity_loop;
+        pid_incremental_t *angle_loop;
+    } pid_ctrl;
+    struct {
+        float current;
+        float velocity;
+        float angle;
+    } target;
 };
 
-void foc_loop(foc_handler_t handler);
+void foc_ctrl_loop(foc_handler_t handler);

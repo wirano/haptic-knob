@@ -22,6 +22,7 @@
 //
 
 #include <math.h>
+#include <stdlib.h>
 #include "foc.h"
 #include "foc_utils.h"
 #include "math_table.h"
@@ -29,30 +30,27 @@
 
 
 void static dqz_trans(foc_handler_t handler) {
+    float i_a, i_b;
     float i_alpha, i_beta;
 
     // Clark transform
     if (!handler->sensors.i_a) {
-        float i_a = -handler->sensors.i_b - handler->sensors.i_c;
-
-        i_alpha = _SQRT2_SQRT3 * handler->sensors.i_a;
-        i_beta = _1_SQRT2 * i_a + _SQRT2 * handler->sensors.i_b;
+        i_a = -handler->sensors.i_b - handler->sensors.i_c;
+        i_b = handler->sensors.i_b;
     } else if (!handler->sensors.i_b) {
-        float i_b = -handler->sensors.i_a - handler->sensors.i_c;
-
-        i_alpha = _SQRT2_SQRT3 * handler->sensors.i_a;
-        i_beta = _1_SQRT2 * handler->sensors.i_a + _SQRT2 * i_b;
+        i_a = handler->sensors.i_a;
+        i_b = -handler->sensors.i_a - handler->sensors.i_c;
     } else if (!handler->sensors.i_c) {
-        i_alpha = _SQRT2_SQRT3 * handler->sensors.i_a;
-        i_beta = _1_SQRT2 * handler->sensors.i_a + _SQRT2 * handler->sensors.i_b;
+        i_a = handler->sensors.i_a;
+        i_b = handler->sensors.i_b;
     } else {
         float err = (1.f / 3) * (handler->sensors.i_a + handler->sensors.i_b + handler->sensors.i_c);
-        float i_a = handler->sensors.i_a - err;
-        float i_b = handler->sensors.i_b - err;
-
-        i_alpha = _SQRT2_SQRT3 * i_a;
-        i_beta = _1_SQRT2 * i_a + _SQRT2 * i_b;
+        i_a = handler->sensors.i_a - err;
+        i_b = handler->sensors.i_b - err;
     }
+
+    i_alpha = i_a;
+    i_beta = _1_SQRT3 * i_a + _2_SQRT3 * i_b;
 
     float si = sinf(handler->data.angle_elec);
     float co = cosf(handler->data.angle_elec);
@@ -66,13 +64,13 @@ void static svpwm_output(foc_handler_t handler) {
     float angle_elec;
     float u_ref;
 
-    if (handler->data.u_alpha != 0) {
-        u_ref = handler->data.u_alpha * handler->data.u_alpha + handler->data.u_beta * handler->data.u_beta;
+    if (handler->data.u_d != 0) {
+        u_ref = handler->data.u_q * handler->data.u_q + handler->data.u_d * handler->data.u_d;
         u_ref = sqrtf(u_ref) / handler->motor.volt;
 
-        angle_elec = angle_normalize(handler->data.angle_elec) + atan2f(handler->data.u_alpha, handler->data.u_beta);
+        angle_elec = angle_normalize(handler->data.angle_elec) + atan2f(handler->data.u_q, handler->data.u_d);
     } else {
-        u_ref = handler->data.u_beta / handler->motor.volt;
+        u_ref = handler->data.u_q / handler->motor.volt;
 
         angle_elec = angle_normalize(handler->data.angle_elec + _PI_2);
     }
@@ -87,48 +85,108 @@ void static svpwm_output(foc_handler_t handler) {
     float Ta, Tb, Tc;
     switch (sector) {
         case 1:
-            Ta = T1 + T2 + T0 / 2;
-            Tb = T2 + T0 / 2;
-            Tc = T0 / 2;
+            Ta = T1 + T2 + T0 / 2.f;
+            Tb = T2 + T0 / 2.f;
+            Tc = T0 / 2.f;
             break;
         case 2:
-            Ta = T1 + T0 / 2;
-            Tb = T1 + T2 + T0 / 2;
-            Tc = T0 / 2;
+            Ta = T1 + T0 / 2.f;
+            Tb = T1 + T2 + T0 / 2.f;
+            Tc = T0 / 2.f;
             break;
         case 3:
-            Ta = T0 / 2;
-            Tb = T1 + T2 + T0 / 2;
-            Tc = T2 + T0 / 2;
+            Ta = T0 / 2.f;
+            Tb = T1 + T2 + T0 / 2.f;
+            Tc = T2 + T0 / 2.f;
             break;
         case 4:
-            Ta = T0 / 2;
-            Tb = T1 + T0 / 2;
-            Tc = T1 + T2 + T0 / 2;
+            Ta = T0 / 2.f;
+            Tb = T1 + T0 / 2.f;
+            Tc = T1 + T2 + T0 / 2.f;
             break;
         case 5:
-            Ta = T2 + T0 / 2;
-            Tb = T0 / 2;
-            Tc = T1 + T2 + T0 / 2;
+            Ta = T2 + T0 / 2.f;
+            Tb = T0 / 2.f;
+            Tc = T1 + T2 + T0 / 2.f;
             break;
         case 6:
-            Ta = T1 + T2 + T0 / 2;
-            Tb = T0 / 2;
-            Tc = T1 + T0 / 2;
+            Ta = T1 + T2 + T0 / 2.f;
+            Tb = T0 / 2.f;
+            Tc = T1 + T0 / 2.f;
             break;
         default:
             Ta = 0;
             Tb = 0;
             Tc = 0;
+            handler->hal.driver_enable(0);
     }
 
     handler->hal.set_pwm(Ta, Tb, Tc);
 }
 
-void foc_loop(foc_handler_t handler) {
+void foc_current_loop(foc_handler_t handler) {
     handler->hal.update_sensors(handler);
 
     dqz_trans(handler);
 
+    handler->data.u_q += PID_IncrementalRealize(handler->pid_ctrl.current_q, handler->data.i_q,
+                                                handler->target.current);
+    handler->data.u_d += PID_IncrementalRealize(handler->pid_ctrl.current_d, handler->data.i_d, 0);
+
     svpwm_output(handler);
+}
+
+void foc_velocity_loop(foc_handler_t handler) {
+    float speed = handler->sensors.angle_abs;
+    float target = handler->target.velocity;
+
+    handler->target.current += PID_IncrementalRealize(handler->pid_ctrl.velocity_loop, speed, target);
+}
+
+void foc_angle_loop(foc_handler_t handler) {
+    float angle = handler->sensors.angle_abs;
+    float target = handler->target.angle;
+
+    handler->target.velocity += PID_IncrementalRealize(handler->pid_ctrl.angle_loop, angle, target);
+}
+
+void foc_ctrl_loop(foc_handler_t handler) {
+    static uint8_t cnt = 0;
+
+    if (!handler->status.enabled) return;
+
+    foc_current_loop(handler);
+
+    if (cnt % 10 == 0) {
+        foc_velocity_loop(handler);
+    }
+
+    if (cnt % 100 == 0) {
+        foc_angle_loop(handler);
+        cnt = 0;
+    }
+
+    cnt++;
+}
+
+void foc_init(foc_handler_t *handler, foc_config_t *cfg) {
+    foc_instance_t *foc = malloc(sizeof(foc_instance_t));
+
+    foc->motor.pole_pairs = cfg->pole_pairs;
+    foc->motor.volt = cfg->motor_volt;
+
+    foc->pid_ctrl.current_d = cfg->current_d;
+    foc->pid_ctrl.current_q = cfg->current_q;
+    foc->pid_ctrl.velocity_loop = cfg->velocity_loop;
+    foc->pid_ctrl.angle_loop = cfg->angle_loop;
+
+    foc->hal.set_pwm = cfg->set_pwm;
+    foc->hal.update_sensors = cfg->update_sensors;
+    foc->hal.driver_enable = cfg->driver_enable;
+    foc->hal.driver_enable = cfg->driver_enable;
+
+    *handler = foc;
+
+    foc->status.enabled = 1;
+    foc->hal.driver_enable(1);
 }
