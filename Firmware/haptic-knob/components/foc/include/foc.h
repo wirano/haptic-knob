@@ -21,6 +21,9 @@
 // SOFTWARE.
 //
 
+#ifndef FOC_H
+#define FOC_H
+
 #include "pid.h"
 #include <stdint.h>
 
@@ -94,3 +97,5 @@ struct foc_instance_t {
 };
 
 void foc_ctrl_loop(foc_handler_t handler);
+
+#endif //FOC_H

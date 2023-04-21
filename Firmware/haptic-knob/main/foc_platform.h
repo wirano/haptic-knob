@@ -30,12 +30,17 @@
 
 #include "drv8311_driver.h"
 #include "mt6701_driver.h"
+#include "foc.h"
 
 extern int adc_raw[3];
 
 extern drv8311_handle_t drv8311;
 extern mt6701_handle_t mt6701;
 
+extern adc_cali_handle_t adc1_cali_handle;
+
 void spi_dev_init(void);
+
+void foc_update_sensors(foc_handler_t handler);
 
 #endif //SPI_H

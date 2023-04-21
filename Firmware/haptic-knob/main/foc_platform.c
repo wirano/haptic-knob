@@ -36,7 +36,6 @@
 #include "esp_private/adc_private.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "esp_vfs.h"
 #include "foc_platform.h"
 #include "hal/adc_types.h"
 #include "mt6701_driver.h"
@@ -53,6 +52,7 @@
 #define DRV8311_CS_PIN 2U
 #define DRV8311_NSLEEP_PIN 39U
 #define DRV8311_PWM_SYNC_PIN 1U
+#define DRV8311_VREF 3.261010526f
 
 #define PHASE_A_CH ADC_CHANNEL_5
 #define PHASE_B_CH ADC_CHANNEL_4
@@ -164,11 +164,17 @@ void foc_drver_enable(uint8_t en) {
 
 void foc_update_sensors(foc_handler_t handler) {
     float angle = mt6701_get_angle_rad(mt6701);
-    int volt;
+    int volt_a, volt_b, volt_c;
 
     handler->sensors.angle_abs = angle;
 
-    //todo: current
+    adc_cali_raw_to_voltage(adc1_cali_handle, adc_raw[0], &volt_a);
+    adc_cali_raw_to_voltage(adc1_cali_handle, adc_raw[1], &volt_b);
+    adc_cali_raw_to_voltage(adc1_cali_handle, adc_raw[2], &volt_c);
+
+    drv8311_calc_current(drv8311, DRV8311_VREF,
+                         volt_a / 1000.f, volt_b / 1000.f, volt_c / 1000.f,
+                         &handler->sensors.i_a, &handler->sensors.i_b, &handler->sensors.i_c);
 }
 
 static void sync_pwm_init(void) {
@@ -193,7 +199,7 @@ static void sync_pwm_init(void) {
     };
     ESP_ERROR_CHECK(mcpwm_new_comparator(mcpwm_oper, &comparator_config, &mcpwm_cmp));
 
-    mcpwm_comparator_set_compare_value(mcpwm_cmp, 250);
+    mcpwm_comparator_set_compare_value(mcpwm_cmp, 500);
 
     mcpwm_generator_config_t generator_config = {
             .gen_gpio_num = DRV8311_PWM_SYNC_PIN,

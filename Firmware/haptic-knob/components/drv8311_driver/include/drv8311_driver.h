@@ -41,6 +41,10 @@ typedef struct {
         DRV8311_PWMCNTR_MODE_t mode;
         uint16_t period;
     } pwm_gen;
+    struct {
+        uint8_t en;
+        DRV8311_CSA_GAIN_t gain;
+    } csa;
 
     struct {
         drv8311_protal_t protel;
@@ -86,8 +90,12 @@ void drv8311_csa_ctrl(drv8311_handle_t handle, uint8_t en);
 
 void drv8311_csa_set_gain(drv8311_handle_t handle, DRV8311_CSA_GAIN_t gain);
 
-void drv8311_phase_ctrl(drv8311_handle_t handle, DRV8311_PHASE_MODE_t phase_a, DRV8311_PHASE_MODE_t phase_b,
-                        DRV8311_PHASE_MODE_t phase_c);
+void drv8311_calc_current(drv8311_handle_t handle, float v_ref,
+                          float v_soa, float v_sob, float v_soc,
+                          float *i_a, float *i_b, float *i_c);
+
+void drv8311_phase_ctrl(drv8311_handle_t handle,
+                        DRV8311_PHASE_MODE_t phase_a, DRV8311_PHASE_MODE_t phase_b, DRV8311_PHASE_MODE_t phase_c);
 
 void drv8311_out_ctrl(drv8311_handle_t handle, uint8_t en);
 

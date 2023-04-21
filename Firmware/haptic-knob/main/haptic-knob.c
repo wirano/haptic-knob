@@ -3,11 +3,13 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
+#include "esp_adc/adc_cali.h"
 
 #include "lv_port.h"
 #include "drv8311_driver.h"
 #include "mt6701_driver.h"
-#include "foc_peripherals.h"
+#include "foc_platform.h"
+#include "foc.h"
 
 #define CFG1    17U
 #define CFG2    18U
@@ -42,11 +44,12 @@ void app_main(void) {
 
     drv8311_out_ctrl(drv8311, 1);
 
-    float duty = 0.1f;
+    float duty = 0.2f;
     drv8311_set_duty(drv8311, duty, 0, 0);
-
+    foc_instance_t t;
     while (1) {
-        ESP_LOGI(TAG, "%d %d %d", adc_raw[0], adc_raw[1], adc_raw[2]);
+        foc_update_sensors(&t);
+        ESP_LOGI(TAG, "%f %f %f", t.sensors.i_a, t.sensors.i_b, t.sensors.i_c);
         vTaskDelay(pdMS_TO_TICKS(100));
 //        ESP_LOGI(TAG, "%f\n", mt6701_get_angle(mt6701));
     }

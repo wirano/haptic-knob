@@ -207,7 +207,9 @@ void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg) {
     drv8311_write(dev, DRV8311_PWMG_PERIOD_ADDR, reg.half_word);
 
     reg.half_word = 0;
+    dev->csa.en = cfg->use_csa;
     if (cfg->use_csa) {
+        dev->csa.gain = cfg->csa_gain;
         reg.csa_ctrl.csa_en = 1;
         reg.csa_ctrl.csa_gain = cfg->csa_gain;
         drv8311_write(dev, DRV8311_CSA_CTRL_ADDR, reg.half_word);
@@ -236,9 +238,9 @@ uint16_t drv8311_update_synced_period(drv8311_handle_t handle) {
     drv8311_reg_t rec;
     rec.half_word = drv8311_read(handle, DRV8311_PWM_SYNC_PRD_ADDR);
 
-    handle->pwm_gen.period = rec.pwm_sync_prd.pwm_sync_prd;
+    handle->pwm_gen.period = rec.pwm_sync_prd.pwm_sync_prd / 2;
 
-    return rec.pwm_sync_prd.pwm_sync_prd;
+    return handle->pwm_gen.period;
 }
 
 void drv8311_csa_ctrl(drv8311_handle_t handle, uint8_t en) {
@@ -265,8 +267,65 @@ void drv8311_csa_set_gain(drv8311_handle_t handle, DRV8311_CSA_GAIN_t gain) {
     drv8311_write(handle, DRV8311_CSA_CTRL_ADDR, csa_ctrl.half_word);
 }
 
-void drv8311_phase_ctrl(drv8311_handle_t handle, DRV8311_PHASE_MODE_t phase_a, DRV8311_PHASE_MODE_t phase_b,
-                        DRV8311_PHASE_MODE_t phase_c) {
+void drv8311_calc_current(drv8311_handle_t handle, float v_ref,
+                          float v_soa, float v_sob, float v_soc,
+                          float *i_a, float *i_b, float *i_c) {
+    float gain;
+
+    if (!handle->csa.en) return;
+
+    switch (handle->csa.gain) {
+        case CSA_GAIN_250MV :
+            gain = 0.25f;
+            break;
+        case CSA_GAIN_500MV:
+            gain = 0.5f;
+            break;
+        case CSA_GAIN_1000MV:
+            gain = 1.f;
+            break;
+        case CSA_GAIN_2000MV:
+            gain = 2.f;
+            break;
+        default:
+            return;
+    }
+
+    if (!v_soa) {
+        // sensed current is referenced to low-side FET, we make it reference to motor.
+        float b = (v_sob - v_ref / 2.f) / gain;
+        float c = (v_soc - v_ref / 2.f) / gain;
+
+        *i_b = 0.998309f * b - 0.021427f * c;
+        *i_c = 0.000368f * b + 0.996967f * c;
+    } else if (!v_sob) {
+        // sensed current is referenced to low-side FET, we make it reference to motor.
+        float a = (v_soa - v_ref / 2.f) / gain;
+        float c = (v_soc - v_ref / 2.f) / gain;
+
+        *i_a = 1.004547f * a + 0.000195f * c;
+        *i_c = 0.000371f * a + 0.996975f * c;
+    } else if (!v_soc) {
+        // sensed current is referenced to low-side FET, we make it reference to motor.
+        float a = (v_soa - v_ref / 2.f) / gain;
+        float b = (v_sob - v_ref / 2.f) / gain;
+
+        *i_a = 1.004346f * a - 0.000199f * b;
+        *i_b = 0.022060f * a + 1.020405f * b;
+    } else {
+        // sensed current is referenced to low-side FET, we make it reference to motor.
+        float a = (v_soa - v_ref / 2.f) / gain;
+        float b = (v_sob - v_ref / 2.f) / gain;
+        float c = (v_soc - v_ref / 2.f) / gain;
+
+        *i_a = 1.001152f * a - 0.003375f * b - 0.003103f * c;
+        *i_b = 0.002369f * a + 1.000665f * b - 0.019126f * c;
+        *i_c = 0.001234f * a + 0.001595f * b + 0.998166f * c;
+    }
+}
+
+void drv8311_phase_ctrl(drv8311_handle_t handle,
+                        DRV8311_PHASE_MODE_t phase_a, DRV8311_PHASE_MODE_t phase_b, DRV8311_PHASE_MODE_t phase_c) {
     drv8311_reg_t phase_ctrl;
 
     phase_ctrl.pwm_state.pwma_state = phase_a;
