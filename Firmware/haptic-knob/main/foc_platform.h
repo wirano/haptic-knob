@@ -41,6 +41,8 @@ extern adc_cali_handle_t adc1_cali_handle;
 
 void spi_dev_init(void);
 
-void foc_update_sensors(foc_handler_t handler);
+void foc_update_sensors(foc_handle_t handler);
+
+void platform_foc_init(void);
 
 #endif //SPI_H

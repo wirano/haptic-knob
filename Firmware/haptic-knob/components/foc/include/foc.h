@@ -30,39 +30,40 @@
 typedef struct foc_hal_t foc_hal_t;
 
 typedef struct foc_instance_t foc_instance_t;
-typedef foc_instance_t *foc_handler_t;
+typedef foc_instance_t *foc_handle_t;
 
-typedef struct {
-    uint8_t pole_pairs;
-    float motor_volt;
-    pid_incremental_t *current_q;
-    pid_incremental_t *current_d;
-    pid_incremental_t *velocity_loop;
-    pid_incremental_t *angle_loop;
-
-    void (*delay)(uint32_t ms);
-
-    void (*update_sensors)(foc_handler_t handler);
-
-    void (*driver_enable)(uint8_t en);
-
-    void (*set_pwm)(float duty_a, float duty_b, float duty_c);
-} foc_config_t;
+typedef enum {
+    FOC_MODE_POS,
+    FOC_MODE_VEL,
+    FOC_MODE_TOR,
+} foc_mode_t;
 
 struct foc_hal_t {
     void (*delay)(uint32_t ms);
 
-    void (*update_sensors)(foc_handler_t handler);
+    void (*update_sensors)(foc_handle_t handler);
 
     void (*driver_enable)(uint8_t en);
 
     void (*set_pwm)(float duty_a, float duty_b, float duty_c);
 };
 
+typedef struct {
+    uint8_t pole_pairs;
+    float motor_volt;
+    foc_mode_t mode;
+    pid_incremental_t *current_q;
+    pid_incremental_t *current_d;
+    pid_incremental_t *velocity_loop;
+    pid_incremental_t *angle_loop;
+    foc_hal_t hal;
+} foc_config_t;
+
 struct foc_instance_t {
     foc_hal_t hal;
     struct {
         uint8_t enabled;
+        foc_mode_t mode;
     } status;
     struct {
         uint8_t pole_pairs;
@@ -70,7 +71,6 @@ struct foc_instance_t {
     } motor;
     struct {
         float angle_abs; // absolut angle in radian
-        float angle_zero_offset;
         float i_a;
         float i_b;
         float i_c;
@@ -80,6 +80,7 @@ struct foc_instance_t {
         float i_d;
         float u_q;
         float u_d;
+        float angle_zero_offset;
         float angle_mech;
         float angle_elec;
     } data;
@@ -96,6 +97,12 @@ struct foc_instance_t {
     } target;
 };
 
-void foc_ctrl_loop(foc_handler_t handler);
+void foc_ctrl_loop(foc_handle_t handle);
+
+void foc_init(foc_handle_t *handle, foc_config_t *cfg);
+
+void foc_enable(foc_handle_t handle, uint8_t en);
+
+void foc_angle_auto_zeroing(foc_handle_t handle);
 
 #endif //FOC_H

@@ -27,13 +27,17 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "driver/mcpwm_prelude.h"
+#include "driver/gptimer.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_private/adc_private.h"
+#include "esp_timer.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "foc_platform.h"
@@ -60,7 +64,10 @@
 
 #define SWAP(x, y) do { (x) ^= (y); (y) ^= (x); (x) ^= (y); } while (0)
 
-#define TAG "spi"
+#define TAG "foc_platform"
+
+
+foc_handle_t foc;
 
 spi_device_handle_t drv8311_dev;
 spi_device_handle_t mt6701_dev;
@@ -77,6 +84,38 @@ int adc_raw[3];
 drv8311_handle_t drv8311;
 mt6701_handle_t mt6701;
 
+uint32_t pid_get_micros(void) {
+    return esp_timer_get_time();
+}
+
+pid_incremental_t i_d = {
+        .Kp = 1,
+        .Ki = 0,
+        .Kd = 0,
+        .get_micros = pid_get_micros,
+};
+
+pid_incremental_t i_q = {
+        .Kp = 0,
+        .Ki = 0,
+        .Kd = 0,
+        .get_micros = pid_get_micros,
+};
+
+pid_incremental_t speed = {
+        .Kp = 0,
+        .Ki = 0,
+        .Kd = 0,
+        .get_micros = pid_get_micros,
+};
+
+pid_incremental_t angle = {
+        .Kp = 0,
+        .Ki = 0,
+        .Kd = 0,
+        .get_micros = pid_get_micros,
+};
+
 //void drv8311_cs_low(spi_transaction_t *trans) {
 //    gpio_set_level(DRV8311_CS_PIN, 0);
 //}
@@ -86,7 +125,6 @@ mt6701_handle_t mt6701;
 //}
 
 void drv8311_spi_trans(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, uint8_t rec_len) {
-    spi_device_acquire_bus(drv8311_dev, portMAX_DELAY);
     union {
         uint8_t bytes[4];
         uint32_t word;
@@ -99,7 +137,9 @@ void drv8311_spi_trans(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, 
             .rxlength = (rec_len + 1) * 8,
     };
 
+    spi_device_acquire_bus(drv8311_dev, portMAX_DELAY);
     ESP_ERROR_CHECK(spi_device_transmit(drv8311_dev, &t));
+    spi_device_release_bus(drv8311_dev);
 //    ESP_LOG_BUFFER_HEX(TAG, rec_buffer.bytes, rec_len + 1);
 
     // workaround for SDO pin output ahead one bit
@@ -116,13 +156,9 @@ void drv8311_spi_trans(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, 
     memcpy(rec_data, rec_buffer.bytes + 1, rec_len);
 //    ESP_LOG_BUFFER_HEX(TAG, send_data, send_len);
 //    ESP_LOG_BUFFER_HEX(TAG, rec_buffer.bytes, rec_len + 1);
-
-    spi_device_release_bus(drv8311_dev);
 }
 
 void mt6701_spi_trans(uint8_t *rec_data, uint8_t rec_len) {
-    spi_device_acquire_bus(mt6701_dev, portMAX_DELAY);
-
     spi_transaction_t t = {
             .tx_buffer = NULL,
             .length = rec_len * 8,
@@ -130,6 +166,7 @@ void mt6701_spi_trans(uint8_t *rec_data, uint8_t rec_len) {
             .rx_buffer = rec_data,
     };
 
+    spi_device_acquire_bus(mt6701_dev, portMAX_DELAY);
     ESP_ERROR_CHECK(spi_device_transmit(mt6701_dev, &t));
 //    ESP_LOG_BUFFER_HEX(TAG, rec_data, rec_len);
 
@@ -140,13 +177,17 @@ void drv8311_nsleep_set(uint8_t level) {
     gpio_set_level(DRV8311_NSLEEP_PIN, level);
 }
 
-IRAM_ATTR bool
+bool IRAM_ATTR
 current_oneshot(mcpwm_cmpr_handle_t comparator, const mcpwm_compare_event_data_t *edata, void *user_ctx) {
     adc_oneshot_read_isr(adc1_handle, PHASE_A_CH, &adc_raw[0]);
     adc_oneshot_read_isr(adc1_handle, PHASE_B_CH, &adc_raw[1]);
     adc_oneshot_read_isr(adc1_handle, PHASE_C_CH, &adc_raw[2]);
 
     return true;
+}
+
+void foc_delay(uint32_t delay) {
+//    vTaskDelay(pdMS_TO_TICKS(delay));
 }
 
 void foc_setpwm(float duty_a, float duty_b, float duty_c) {
@@ -162,7 +203,7 @@ void foc_drver_enable(uint8_t en) {
     }
 }
 
-void foc_update_sensors(foc_handler_t handler) {
+void foc_update_sensors(foc_handle_t handler) {
     float angle = mt6701_get_angle_rad(mt6701);
     int volt_a, volt_b, volt_c;
 
@@ -175,6 +216,11 @@ void foc_update_sensors(foc_handler_t handler) {
     drv8311_calc_current(drv8311, DRV8311_VREF,
                          volt_a / 1000.f, volt_b / 1000.f, volt_c / 1000.f,
                          &handler->sensors.i_a, &handler->sensors.i_b, &handler->sensors.i_c);
+}
+
+bool IRAM_ATTR foc_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
+{
+    return true;
 }
 
 static void sync_pwm_init(void) {
@@ -324,4 +370,49 @@ void spi_dev_init(void) {
 
     // update drv8311 pwm period (used to calculate duty)
     drv8311_update_synced_period(drv8311);
+}
+
+void platform_foc_init(void) {
+    foc_config_t foc_cfg = {
+            .hal = {
+                    .update_sensors = foc_update_sensors,
+                    .set_pwm = foc_setpwm,
+                    .driver_enable = foc_drver_enable,
+                    .delay = foc_delay,
+            },
+            .mode = FOC_MODE_TOR,
+            .current_q = &i_q,
+            .current_d = &i_d,
+            .velocity_loop = &speed,
+            .angle_loop = &angle,
+            .motor_volt = 5,
+            .pole_pairs = 7,
+    };
+
+    foc_init(&foc, &foc_cfg);
+    foc_angle_auto_zeroing(foc);
+
+//    gptimer_handle_t gptimer = NULL;
+//    gptimer_config_t timer_config = {
+//            .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+//            .direction = GPTIMER_COUNT_UP,
+//            .resolution_hz = 1000000, // 1MHz, 1 tick=1us
+//    };
+//    ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &gptimer));
+//
+//    gptimer_alarm_config_t alarm_config = {
+//            .reload_count = 0, // counter will reload with 0 on alarm event
+//            .alarm_count = 1000000, // period = 0.001s @resolution 1MHz
+//            .flags.auto_reload_on_alarm = true, // enable auto-reload
+//    };
+//    ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_config));
+//
+//    gptimer_event_callbacks_t cbs = {
+//            .on_alarm = foc_timer_cb, // register user callback
+//    };
+//    ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, NULL));
+////    ESP_ERROR_CHECK(gptimer_enable(gptimer));
+//    ESP_ERROR_CHECK(gptimer_start(gptimer));
+
+    foc_enable(foc, 1);
 }

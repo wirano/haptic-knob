@@ -29,7 +29,10 @@
 #include "pid.h"
 
 
-void static dqz_trans(foc_handler_t handler) {
+#define CALI_CURRENT 0.3f
+
+
+void static dqz_trans(foc_handle_t handler) {
     float i_a, i_b;
     float i_alpha, i_beta;
 
@@ -60,7 +63,7 @@ void static dqz_trans(foc_handler_t handler) {
     handler->data.i_q = co * i_alpha - si * i_beta;
 }
 
-void static svpwm_output(foc_handler_t handler) {
+void static svpwm_output(foc_handle_t handler) {
     float angle_elec;
     float u_ref;
 
@@ -124,9 +127,17 @@ void static svpwm_output(foc_handler_t handler) {
     handler->hal.set_pwm(Ta, Tb, Tc);
 }
 
-void foc_current_loop(foc_handler_t handler) {
-    handler->hal.update_sensors(handler);
+void foc_update_sensor(foc_handle_t handle) {
+    handle->hal.update_sensors(handle);
 
+    float angle = handle->sensors.angle_abs - handle->data.angle_zero_offset;
+    angle = angle > 0 ? angle : angle + _2PI;
+    handle->data.angle_mech = angle;
+
+    handle->data.angle_elec = angle * handle->motor.pole_pairs;
+}
+
+void foc_current_loop(foc_handle_t handler) {
     dqz_trans(handler);
 
     handler->data.u_q += PID_IncrementalRealize(handler->pid_ctrl.current_q, handler->data.i_q,
@@ -136,41 +147,49 @@ void foc_current_loop(foc_handler_t handler) {
     svpwm_output(handler);
 }
 
-void foc_velocity_loop(foc_handler_t handler) {
+void foc_velocity_loop(foc_handle_t handler) {
     float speed = handler->sensors.angle_abs;
     float target = handler->target.velocity;
 
     handler->target.current += PID_IncrementalRealize(handler->pid_ctrl.velocity_loop, speed, target);
 }
 
-void foc_angle_loop(foc_handler_t handler) {
+void foc_angle_loop(foc_handle_t handler) {
     float angle = handler->sensors.angle_abs;
     float target = handler->target.angle;
 
     handler->target.velocity += PID_IncrementalRealize(handler->pid_ctrl.angle_loop, angle, target);
 }
 
-void foc_ctrl_loop(foc_handler_t handler) {
+void foc_ctrl_loop(foc_handle_t handle) {
     static uint8_t cnt = 0;
 
-    if (!handler->status.enabled) return;
+    foc_update_sensor(handle);
 
-    foc_current_loop(handler);
+    if (!handle->status.enabled) return;
 
-    if (cnt % 10 == 0) {
-        foc_velocity_loop(handler);
-    }
-
-    if (cnt % 100 == 0) {
-        foc_angle_loop(handler);
-        cnt = 0;
+    switch (handle->status.mode) {
+        case FOC_MODE_POS:
+            if (cnt % 100 == 0) {
+                foc_angle_loop(handle);
+                cnt = 0;
+            }
+        case FOC_MODE_VEL:
+            if (cnt % 10 == 0) {
+                foc_velocity_loop(handle);
+            }
+        case FOC_MODE_TOR:
+            foc_current_loop(handle);
+            break;
     }
 
     cnt++;
 }
 
-void foc_init(foc_handler_t *handler, foc_config_t *cfg) {
+void foc_init(foc_handle_t *handle, foc_config_t *cfg) {
     foc_instance_t *foc = malloc(sizeof(foc_instance_t));
+
+    foc->status.mode = cfg->mode;
 
     foc->motor.pole_pairs = cfg->pole_pairs;
     foc->motor.volt = cfg->motor_volt;
@@ -180,13 +199,49 @@ void foc_init(foc_handler_t *handler, foc_config_t *cfg) {
     foc->pid_ctrl.velocity_loop = cfg->velocity_loop;
     foc->pid_ctrl.angle_loop = cfg->angle_loop;
 
-    foc->hal.set_pwm = cfg->set_pwm;
-    foc->hal.update_sensors = cfg->update_sensors;
-    foc->hal.driver_enable = cfg->driver_enable;
-    foc->hal.driver_enable = cfg->driver_enable;
+    foc->hal.set_pwm = cfg->hal.set_pwm;
+    foc->hal.update_sensors = cfg->hal.update_sensors;
+    foc->hal.driver_enable = cfg->hal.driver_enable;
+    foc->hal.driver_enable = cfg->hal.driver_enable;
 
-    *handler = foc;
+    *handle = foc;
 
-    foc->status.enabled = 1;
-    foc->hal.driver_enable(1);
+    foc->status.enabled = 0;
+    foc->hal.driver_enable(0);
+}
+
+void foc_enable(foc_handle_t handle, uint8_t en) {
+    if (en) {
+        handle->status.enabled = 1;
+        handle->hal.driver_enable(1);
+    } else {
+        handle->status.enabled = 0;
+        handle->hal.driver_enable(0);
+    }
+}
+
+void foc_angle_auto_zeroing(foc_handle_t handle) {
+    // stop foc ctrl loop
+    handle->status.enabled = 0;
+    handle->hal.driver_enable(1);
+
+    handle->data.u_q = 0;
+    handle->data.u_d = CALI_CURRENT;
+    handle->data.angle_elec = 0;
+    svpwm_output(handle);
+
+    handle->hal.delay(200);
+
+    handle->hal.update_sensors(handle);
+
+    handle->data.angle_zero_offset = handle->sensors.angle_abs;
+
+    handle->data.u_q = 0;
+    handle->data.u_d = 0;
+    handle->data.angle_elec = 0;
+    handle->data.angle_mech = 0;
+    svpwm_output(handle);
+
+    // restart doc ctrl loop
+    handle->status.enabled = 1;
 }

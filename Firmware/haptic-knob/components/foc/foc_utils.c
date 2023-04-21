@@ -9,5 +9,5 @@
 
 float angle_normalize(float angle) {
     float normalized = fmodf(angle, _2PI);
-    return normalized >= 0 ? normalized : (normalized + M_2_PI);
+    return normalized >= 0 ? normalized : (normalized + _2PI);
 }

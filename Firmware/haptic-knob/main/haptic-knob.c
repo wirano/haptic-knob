@@ -6,7 +6,6 @@
 #include "esp_adc/adc_cali.h"
 
 #include "lv_port.h"
-#include "drv8311_driver.h"
 #include "mt6701_driver.h"
 #include "foc_platform.h"
 #include "foc.h"
@@ -40,17 +39,9 @@ void app_main(void) {
     gpio_set_level(CFG3, 1);
     gpio_set_level(CFG1, 0);
 
-    ESP_LOGI(TAG, "%f\n", mt6701_get_angle_deg(mt6701));
-
-    drv8311_out_ctrl(drv8311, 1);
-
-    float duty = 0.2f;
-    drv8311_set_duty(drv8311, duty, 0, 0);
-    foc_instance_t t;
+    platform_foc_init();
     while (1) {
-        foc_update_sensors(&t);
-        ESP_LOGI(TAG, "%f %f %f", t.sensors.i_a, t.sensors.i_b, t.sensors.i_c);
-        vTaskDelay(pdMS_TO_TICKS(100));
-//        ESP_LOGI(TAG, "%f\n", mt6701_get_angle(mt6701));
+//        ESP_LOGI(TAG, "%f %f %f %f", t.sensors.i_a, t.sensors.i_b, t.sensors.i_c, t.sensors.angle_abs);
+        vTaskDelay(pdMS_TO_TICKS(2));
     }
 }

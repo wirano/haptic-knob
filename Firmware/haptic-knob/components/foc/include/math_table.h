@@ -28,15 +28,11 @@
 #ifndef MATH_TABLE_H
 #define MATH_TABLE_H
 
-#define _SQRT3 0
-#define _1_SQRT3 0
-#define _2_SQRT3 0
-#define _SQRT3_2 0
-#define _SQRT2_SQRT3 0
-#define _1_SQRT2 0
-#define _SQRT2 0
-#define _2PI 0
-#define _PI_2 0
-#define _PI_3 0
+#define _SQRT3 1.73205080757f
+#define _1_SQRT3 0.57735026919f
+#define _2_SQRT3 1.15470053838f
+#define _2PI 6.28318530718f
+#define _PI_2 1.5707963268f
+#define _PI_3 1.0471975512f
 
 #endif //MATH_TABLE_H
