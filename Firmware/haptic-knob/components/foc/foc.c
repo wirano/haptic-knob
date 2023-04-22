@@ -202,7 +202,7 @@ void foc_init(foc_handle_t *handle, foc_config_t *cfg) {
     foc->hal.set_pwm = cfg->hal.set_pwm;
     foc->hal.update_sensors = cfg->hal.update_sensors;
     foc->hal.driver_enable = cfg->hal.driver_enable;
-    foc->hal.driver_enable = cfg->hal.driver_enable;
+    foc->hal.delay = cfg->hal.delay;
 
     *handle = foc;
 

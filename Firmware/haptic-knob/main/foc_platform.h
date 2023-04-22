@@ -34,6 +34,8 @@
 
 extern int adc_raw[3];
 
+extern foc_handle_t foc;
+
 extern drv8311_handle_t drv8311;
 extern mt6701_handle_t mt6701;
 

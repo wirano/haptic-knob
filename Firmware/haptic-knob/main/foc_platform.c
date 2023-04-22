@@ -89,14 +89,14 @@ uint32_t pid_get_micros(void) {
 }
 
 pid_incremental_t i_d = {
-        .Kp = 1,
+        .Kp = 4,
         .Ki = 0,
         .Kd = 0,
         .get_micros = pid_get_micros,
 };
 
 pid_incremental_t i_q = {
-        .Kp = 0,
+        .Kp = 4,
         .Ki = 0,
         .Kd = 0,
         .get_micros = pid_get_micros,
@@ -109,7 +109,7 @@ pid_incremental_t speed = {
         .get_micros = pid_get_micros,
 };
 
-pid_incremental_t angle = {
+pid_incremental_t angle_loop = {
         .Kp = 0,
         .Ki = 0,
         .Kd = 0,
@@ -187,7 +187,7 @@ current_oneshot(mcpwm_cmpr_handle_t comparator, const mcpwm_compare_event_data_t
 }
 
 void foc_delay(uint32_t delay) {
-//    vTaskDelay(pdMS_TO_TICKS(delay));
+    vTaskDelay(pdMS_TO_TICKS(delay));
 }
 
 void foc_setpwm(float duty_a, float duty_b, float duty_c) {
@@ -218,9 +218,11 @@ void foc_update_sensors(foc_handle_t handler) {
                          &handler->sensors.i_a, &handler->sensors.i_b, &handler->sensors.i_c);
 }
 
-bool IRAM_ATTR foc_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
+void foc_timer_cb(void *args)
+//bool IRAM_ATTR foc_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
 {
-    return true;
+    foc_ctrl_loop(foc);
+//    return true;
 }
 
 static void sync_pwm_init(void) {
@@ -384,7 +386,7 @@ void platform_foc_init(void) {
             .current_q = &i_q,
             .current_d = &i_d,
             .velocity_loop = &speed,
-            .angle_loop = &angle,
+            .angle_loop = &angle_loop,
             .motor_volt = 5,
             .pole_pairs = 7,
     };
@@ -402,7 +404,7 @@ void platform_foc_init(void) {
 //
 //    gptimer_alarm_config_t alarm_config = {
 //            .reload_count = 0, // counter will reload with 0 on alarm event
-//            .alarm_count = 1000000, // period = 0.001s @resolution 1MHz
+//            .alarm_count = 1000, // period = 0.001s @resolution 1MHz
 //            .flags.auto_reload_on_alarm = true, // enable auto-reload
 //    };
 //    ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_config));
@@ -411,8 +413,19 @@ void platform_foc_init(void) {
 //            .on_alarm = foc_timer_cb, // register user callback
 //    };
 //    ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, NULL));
-////    ESP_ERROR_CHECK(gptimer_enable(gptimer));
+//    ESP_ERROR_CHECK(gptimer_enable(gptimer));
 //    ESP_ERROR_CHECK(gptimer_start(gptimer));
 
+    const esp_timer_create_args_t periodic_timer_args = {
+            .callback = foc_timer_cb,
+            /* name is optional, but may help identify the timer when debugging */
+            .name = "periodic"
+    };
+
+    esp_timer_handle_t periodic_timer;
+    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 10000));
+
+    foc->target.current = 0.3;
     foc_enable(foc, 1);
 }

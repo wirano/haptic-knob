@@ -9,6 +9,7 @@
 #include "mt6701_driver.h"
 #include "foc_platform.h"
 #include "foc.h"
+#include <stdio.h>
 
 #define CFG1    17U
 #define CFG2    18U
@@ -32,6 +33,8 @@ void app_main(void) {
     gpio_conf.pin_bit_mask = 1 << CFG3;
     gpio_config(&gpio_conf);
 
+    lvgl_init();
+
     spi_dev_init(); // init drv8311 before query for 12V
 
     // 12V
@@ -41,7 +44,9 @@ void app_main(void) {
 
     platform_foc_init();
     while (1) {
-//        ESP_LOGI(TAG, "%f %f %f %f", t.sensors.i_a, t.sensors.i_b, t.sensors.i_c, t.sensors.angle_abs);
+        printf("/*%f,%f,%f,%f,%f,%f,%f,%f,%f*/", foc->sensors.i_a, foc->sensors.i_b, foc->sensors.i_c, foc->data.i_d,
+               foc->data.i_q, foc->data.u_d, foc->data.u_q, foc->data.angle_mech / 6.28318530718 * 360,
+               foc->sensors.angle_abs / 6.28318530718 * 360);
         vTaskDelay(pdMS_TO_TICKS(2));
     }
 }
