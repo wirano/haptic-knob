@@ -39,7 +39,6 @@ extern foc_handle_t foc;
 extern drv8311_handle_t drv8311;
 extern mt6701_handle_t mt6701;
 
-extern adc_cali_handle_t adc1_cali_handle;
 
 void spi_dev_init(void);
 

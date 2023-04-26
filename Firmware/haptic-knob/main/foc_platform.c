@@ -79,7 +79,9 @@ mcpwm_gen_handle_t mcpwm_gen;
 
 adc_oneshot_unit_handle_t adc1_handle;
 adc_cali_handle_t adc1_cali_handle;
+int adc_cnt = 0;
 int adc_raw[3];
+int adc_ch[] = {PHASE_A_CH, PHASE_B_CH, PHASE_C_CH};
 
 drv8311_handle_t drv8311;
 mt6701_handle_t mt6701;
@@ -138,7 +140,7 @@ void drv8311_spi_trans(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, 
     };
 
     spi_device_acquire_bus(drv8311_dev, portMAX_DELAY);
-    ESP_ERROR_CHECK(spi_device_transmit(drv8311_dev, &t));
+    spi_device_polling_transmit(drv8311_dev, &t);
     spi_device_release_bus(drv8311_dev);
 //    ESP_LOG_BUFFER_HEX(TAG, rec_buffer.bytes, rec_len + 1);
 
@@ -154,8 +156,10 @@ void drv8311_spi_trans(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, 
         SWAP(rec_buffer.bytes[i], rec_buffer.bytes[3 - i]);
     }
     memcpy(rec_data, rec_buffer.bytes + 1, rec_len);
+//    ESP_LOGI(TAG,"");
 //    ESP_LOG_BUFFER_HEX(TAG, send_data, send_len);
 //    ESP_LOG_BUFFER_HEX(TAG, rec_buffer.bytes, rec_len + 1);
+//    ESP_LOGI(TAG,"");
 }
 
 void mt6701_spi_trans(uint8_t *rec_data, uint8_t rec_len) {
@@ -167,7 +171,7 @@ void mt6701_spi_trans(uint8_t *rec_data, uint8_t rec_len) {
     };
 
     spi_device_acquire_bus(mt6701_dev, portMAX_DELAY);
-    ESP_ERROR_CHECK(spi_device_transmit(mt6701_dev, &t));
+    spi_device_polling_transmit(mt6701_dev, &t);
 //    ESP_LOG_BUFFER_HEX(TAG, rec_data, rec_len);
 
     spi_device_release_bus(mt6701_dev);
@@ -179,9 +183,10 @@ void drv8311_nsleep_set(uint8_t level) {
 
 bool IRAM_ATTR
 current_oneshot(mcpwm_cmpr_handle_t comparator, const mcpwm_compare_event_data_t *edata, void *user_ctx) {
-    adc_oneshot_read_isr(adc1_handle, PHASE_A_CH, &adc_raw[0]);
-    adc_oneshot_read_isr(adc1_handle, PHASE_B_CH, &adc_raw[1]);
-    adc_oneshot_read_isr(adc1_handle, PHASE_C_CH, &adc_raw[2]);
+    adc_oneshot_read_isr(adc1_handle, adc_ch[adc_cnt], &adc_raw[adc_cnt]);
+
+    adc_cnt++;
+    if(adc_cnt == 3) adc_cnt = 0;
 
     return true;
 }
@@ -196,6 +201,7 @@ void foc_setpwm(float duty_a, float duty_b, float duty_c) {
 
 void foc_drver_enable(uint8_t en) {
     if (en) {
+        drv8311_clear_fault(drv8311);
         drv8311_out_ctrl(drv8311, 1);
     } else {
         drv8311_set_duty(drv8311, 0, 0, 0);
@@ -204,9 +210,10 @@ void foc_drver_enable(uint8_t en) {
 }
 
 void foc_update_sensors(foc_handle_t handler) {
-    float angle = mt6701_get_angle_rad(mt6701);
     int volt_a, volt_b, volt_c;
+    float angle = mt6701_get_angle_rad(mt6701);
 
+//    float angle = 0;
     handler->sensors.angle_abs = angle;
 
     adc_cali_raw_to_voltage(adc1_cali_handle, adc_raw[0], &volt_a);
@@ -218,11 +225,52 @@ void foc_update_sensors(foc_handle_t handler) {
                          &handler->sensors.i_a, &handler->sensors.i_b, &handler->sensors.i_c);
 }
 
-void foc_timer_cb(void *args)
-//bool IRAM_ATTR foc_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
-{
-    foc_ctrl_loop(foc);
-//    return true;
+void foc_task(void *args) {
+    foc_config_t foc_cfg = {
+            .hal = {
+                    .update_sensors = foc_update_sensors,
+                    .set_pwm = foc_setpwm,
+                    .driver_enable = foc_drver_enable,
+                    .delay = foc_delay,
+            },
+            .mode = FOC_MODE_TOR,
+            .current_q = &i_q,
+            .current_d = &i_d,
+            .velocity_loop = &speed,
+            .angle_loop = &angle_loop,
+            .motor_volt = 5,
+            .pole_pairs = 7,
+    };
+
+    foc_init(&foc, &foc_cfg);
+    foc_angle_auto_zeroing(foc);
+
+    foc->target.current = 0.2f;
+    foc_enable(foc, 1);
+
+    while (1) {
+        foc_ctrl_loop(foc);
+        printf("/*%f*/\n", foc->data.angle_mech / 6.28318530718 * 360);
+        vTaskDelay(pdMS_TO_TICKS(1));
+        uint16_t r = 0;
+        r = drv8311_read(drv8311, DRV8311_PWMG_CTRL_ADDR);
+        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
+    drv8311_out_ctrl(drv8311,1);
+//        r = drv8311_read(drv8311, DRV8311_DEV_STS1_ADDR);
+//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
+//        r = drv8311_read(drv8311, DRV8311_OT_STS_ADDR);
+//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
+//        r = drv8311_read(drv8311, DRV8311_SUP_STS_ADDR);
+//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
+//        r = drv8311_read(drv8311, DRV8311_DRV_STS_ADDR);
+//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
+//        r = drv8311_read(drv8311, DRV8311_SYS_STS_ADDR);
+//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
+//        r = drv8311_read(drv8311, DRV8311_PWM_STATE_ADDR);
+//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
+    }
+
+    vTaskDelete(NULL);
 }
 
 static void sync_pwm_init(void) {
@@ -231,7 +279,7 @@ static void sync_pwm_init(void) {
             .group_id = 0,
             .clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT,
             .resolution_hz = 10 * 1000 * 1000,
-            .period_ticks = (10 * 1000 * 1000) / (10 * 1000),
+            .period_ticks = (10 * 1000 * 1000) / (20 * 1000),
             .count_mode = MCPWM_TIMER_COUNT_MODE_UP,
     };
     ESP_ERROR_CHECK(mcpwm_new_timer(&timer_config, &mcpwm_timer));
@@ -247,7 +295,7 @@ static void sync_pwm_init(void) {
     };
     ESP_ERROR_CHECK(mcpwm_new_comparator(mcpwm_oper, &comparator_config, &mcpwm_cmp));
 
-    mcpwm_comparator_set_compare_value(mcpwm_cmp, 500);
+    mcpwm_comparator_set_compare_value(mcpwm_cmp, 250);
 
     mcpwm_generator_config_t generator_config = {
             .gen_gpio_num = DRV8311_PWM_SYNC_PIN,
@@ -308,13 +356,6 @@ static void spi_dev_gpio_init(void) {
             .pull_up_en = false,
     };
 
-//    gpio_conf.pin_bit_mask = 1ULL << MT6701_CS_PIN;  // mt6701 cs
-//    gpio_config(&gpio_conf);
-
-//    gpio_conf.pin_bit_mask = 1ULL << DRV8311_CS_PIN;  // drv8311 cs
-//    gpio_config(&gpio_conf);
-//    gpio_set_level(DRV8311_CS_PIN,1);
-
     gpio_conf.pin_bit_mask = 1ULL << DRV8311_NSLEEP_PIN; // drv8311 nsleep
     gpio_config(&gpio_conf);
     gpio_set_level(DRV8311_NSLEEP_PIN, 0);
@@ -331,34 +372,30 @@ void spi_dev_init(void) {
             .miso_io_num = MISO_PIN,
             .quadhd_io_num = -1,
             .quadwp_io_num = -1,
-            .max_transfer_sz = 4,
+            .max_transfer_sz = 1024,
     };
     ESP_ERROR_CHECK(spi_bus_initialize(SPI_BUS, &buscfg, SPI_DMA_DISABLED));
 
     spi_device_interface_config_t spi_dev_cfg = {
             .clock_speed_hz = SPI_FREQ,
             .mode = 1,
-            .cs_ena_pretrans = 1,
+            .cs_ena_pretrans = 4,
             .spics_io_num = DRV8311_CS_PIN,
-            .queue_size = 4,
-//            .pre_cb = drv8311_cs_low,
-//            .post_cb = drv8311_cs_high,
+            .queue_size = 1,
     };
     ESP_ERROR_CHECK(spi_bus_add_device(SPI_BUS, &spi_dev_cfg, &drv8311_dev));
 
-    spi_dev_cfg.mode = 3;
+    spi_dev_cfg.mode = 1;
     spi_dev_cfg.spics_io_num = MT6701_CS_PIN;
-    spi_dev_cfg.pre_cb = NULL;
-    spi_dev_cfg.post_cb = NULL;
     ESP_ERROR_CHECK(spi_bus_add_device(SPI_BUS, &spi_dev_cfg, &mt6701_dev));
 
     drv8311_cfg_t drv8311_cfg = {
             .pwmcnt_mode = UP_DOWN,
-            .sync_mode = SET_PWM_PERIOD,
+            .sync_mode = SYNC_DISABLE,
             .portal = tSPI,
             .csa_gain = CSA_GAIN_2000MV,
 
-//            .pwm_period = 400,
+            .pwm_period = 400,
             .use_csa = 1,
             .dev_id = 0x0,
             .parity_check = 0,
@@ -368,64 +405,14 @@ void spi_dev_init(void) {
     };
 
     drv8311_init(&drv8311, &drv8311_cfg);
-    mt6701_init(&mt6701, mt6701_spi_trans);
-
+    vTaskDelay(pdMS_TO_TICKS(10));
     // update drv8311 pwm period (used to calculate duty)
-    drv8311_update_synced_period(drv8311);
+//    uint16_t period = drv8311_update_synced_period(drv8311);
+//    ESP_LOGI(TAG,"synced period: %d",period);
+
+    mt6701_init(&mt6701, mt6701_spi_trans);
 }
 
 void platform_foc_init(void) {
-    foc_config_t foc_cfg = {
-            .hal = {
-                    .update_sensors = foc_update_sensors,
-                    .set_pwm = foc_setpwm,
-                    .driver_enable = foc_drver_enable,
-                    .delay = foc_delay,
-            },
-            .mode = FOC_MODE_TOR,
-            .current_q = &i_q,
-            .current_d = &i_d,
-            .velocity_loop = &speed,
-            .angle_loop = &angle_loop,
-            .motor_volt = 5,
-            .pole_pairs = 7,
-    };
-
-    foc_init(&foc, &foc_cfg);
-    foc_angle_auto_zeroing(foc);
-
-//    gptimer_handle_t gptimer = NULL;
-//    gptimer_config_t timer_config = {
-//            .clk_src = GPTIMER_CLK_SRC_DEFAULT,
-//            .direction = GPTIMER_COUNT_UP,
-//            .resolution_hz = 1000000, // 1MHz, 1 tick=1us
-//    };
-//    ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &gptimer));
-//
-//    gptimer_alarm_config_t alarm_config = {
-//            .reload_count = 0, // counter will reload with 0 on alarm event
-//            .alarm_count = 1000, // period = 0.001s @resolution 1MHz
-//            .flags.auto_reload_on_alarm = true, // enable auto-reload
-//    };
-//    ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_config));
-//
-//    gptimer_event_callbacks_t cbs = {
-//            .on_alarm = foc_timer_cb, // register user callback
-//    };
-//    ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, NULL));
-//    ESP_ERROR_CHECK(gptimer_enable(gptimer));
-//    ESP_ERROR_CHECK(gptimer_start(gptimer));
-
-    const esp_timer_create_args_t periodic_timer_args = {
-            .callback = foc_timer_cb,
-            /* name is optional, but may help identify the timer when debugging */
-            .name = "periodic"
-    };
-
-    esp_timer_handle_t periodic_timer;
-    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 10000));
-
-    foc->target.current = 0.3;
-    foc_enable(foc, 1);
+    xTaskCreatePinnedToCore(foc_task, "foc", 4096, NULL, 8, NULL, 0);
 }
