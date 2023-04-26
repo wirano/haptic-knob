@@ -172,7 +172,6 @@ void foc_ctrl_loop(foc_handle_t handle) {
         case FOC_MODE_POS:
             if (cnt % 100 == 0) {
                 foc_angle_loop(handle);
-                cnt = 0;
             }
         case FOC_MODE_VEL:
             if (cnt % 10 == 0) {
@@ -182,6 +181,8 @@ void foc_ctrl_loop(foc_handle_t handle) {
             foc_current_loop(handle);
             break;
     }
+
+    if(cnt % 100 == 0) cnt = 0;
 
     cnt++;
 }

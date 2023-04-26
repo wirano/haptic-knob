@@ -47,7 +47,7 @@ typedef struct {
     } csa;
 
     struct {
-        drv8311_protal_t protel;
+        drv8311_protal_t protal;
         uint8_t devicd_id;
         uint8_t parity_check;
 
@@ -78,6 +78,8 @@ typedef struct {
 typedef drv8311_instance_t *drv8311_handle_t;
 
 
+uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg);
+
 void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg);
 
 void drv8311_nsleep_ctrl(drv8311_handle_t handle, uint8_t level);
@@ -102,5 +104,7 @@ void drv8311_out_ctrl(drv8311_handle_t handle, uint8_t en);
 void drv8311_set_period(drv8311_handle_t handle, uint16_t period);
 
 void drv8311_set_duty(drv8311_handle_t handle, float a, float b, float c);
+
+void drv8311_clear_fault(drv8311_handle_t handle);
 
 #endif //DRV8311_DRIVER_H

@@ -26,6 +26,7 @@
 //
 
 #include <stdlib.h>
+#include <string.h>
 #include "drv8311_driver.h"
 #include "drv8311_reg.h"
 
@@ -129,21 +130,60 @@ drv8311_transmit(drv8311_handle_t handle, uint8_t *send_data, uint8_t send_len, 
 
     handle->interface.spi_trans(send_data, send_len, rec_data, rec_len);
 
+    if(rec_data == NULL) return;
+
     // swap to little-endian
     SWAP(rec_data[0], rec_data[2]);
+}
+
+static void drv8311_multi_write(drv8311_handle_t handle, uint8_t start_reg, uint16_t *data, uint8_t reg_num) {
+    drv8311_send_data_t *send_data = malloc(reg_num);
+
+    for (int i = 0; i < reg_num; ++i) {
+        send_data[reg_num - 1 - i].data = data[i];
+        send_data[reg_num - 1 - i].parity = parity_even_calc(data[i]);
+    }
+
+    if (handle->interface.protal == SPI) {
+        drv8311_spi_send_header_t header;
+        uint8_t *send_buffer = malloc(reg_num * 2 + 1);
+
+        header = drv8311_spi_header_gen(RW_CTRL_WRITE, start_reg);
+
+        memcpy(&send_buffer[0], send_data, reg_num * 2);
+        memcpy(&send_buffer[reg_num * 2], &header, sizeof(header));
+
+        drv8311_transmit(handle, send_buffer, sizeof(send_buffer), NULL, 0);
+
+        free(send_buffer);
+    } else if (handle->interface.protal == tSPI) {
+        drv8311_tspi_send_header_t header;
+        uint8_t *send_buffer = malloc(reg_num * 2 + 2);
+
+        header = drv8311_tspi_header_gen(RW_CTRL_WRITE, start_reg, handle->interface.devicd_id);
+
+        memcpy(&send_buffer[0], send_data, reg_num * 2);
+        memcpy(&send_buffer[reg_num * 2], &header, sizeof(header));
+
+        drv8311_transmit(handle, send_buffer, reg_num * 2 + 2, NULL, 0);
+
+        free(send_buffer);
+    }
+
+    free(send_data);
 }
 
 static void drv8311_write(drv8311_handle_t handle, uint8_t reg, uint16_t data) {
     drv8311_recv_pkg_t rec;
 
-    if (handle->interface.protel == SPI) {
+    if (handle->interface.protal == SPI) {
         drv8311_spi_send_pkg_t data_pkg;
         data_pkg.header = drv8311_spi_header_gen(RW_CTRL_WRITE, reg);
         data_pkg.data.data = data;
         data_pkg.data.parity = parity_even_calc(data);
 
         drv8311_transmit(handle, data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
-    } else if (handle->interface.protel == tSPI) {
+    } else if (handle->interface.protal == tSPI) {
         drv8311_tspi_send_pkg_t data_pkg;
         data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_WRITE, reg, handle->interface.devicd_id);
         data_pkg.data.data = data;
@@ -153,17 +193,17 @@ static void drv8311_write(drv8311_handle_t handle, uint8_t reg, uint16_t data) {
     }
 }
 
-static uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
+uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
     drv8311_recv_pkg_t rec;
 
-    if (handle->interface.protel == SPI) {
+    if (handle->interface.protal == SPI) {
         drv8311_spi_send_pkg_t data_pkg;
         data_pkg.header = drv8311_spi_header_gen(RW_CTRL_READ, reg);
         data_pkg.data.data = 0xffff >> 1; // send dummy bits
         data_pkg.data.parity = parity_even_calc(data_pkg.data.data);
 
         drv8311_transmit(handle, data_pkg.bytes, sizeof(data_pkg), rec.bytes, sizeof(rec));
-    } else if (handle->interface.protel == tSPI) {
+    } else if (handle->interface.protal == tSPI) {
         drv8311_tspi_send_pkg_t data_pkg;
         data_pkg.header = drv8311_tspi_header_gen(RW_CTRL_READ, reg, handle->interface.devicd_id);
         data_pkg.data.data = 0xffff >> 1; // send dummy bits
@@ -183,7 +223,7 @@ void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg) {
     drv8311_reg_t reg;
     drv8311_instance_t *dev = malloc(sizeof(drv8311_instance_t));
 
-    dev->interface.protel = cfg->portal;
+    dev->interface.protal = cfg->portal;
     dev->interface.devicd_id = cfg->dev_id;
     dev->interface.parity_check = cfg->parity_check;
     dev->interface.spi_trans = cfg->spi_trans;
@@ -357,17 +397,24 @@ void drv8311_set_period(drv8311_handle_t handle, uint16_t period) {
 }
 
 void drv8311_set_duty(drv8311_handle_t handle, float a, float b, float c) {
-    drv8311_reg_t pwmg_duty;
-    uint16_t cmp_a, cmp_b, cmp_c;
+    drv8311_reg_t pwmg_duty[3];
+    uint16_t cmp[3];
 
-    cmp_a = (uint16_t) ((float) handle->pwm_gen.period * a);
-    cmp_b = (uint16_t) ((float) handle->pwm_gen.period * b);
-    cmp_c = (uint16_t) ((float) handle->pwm_gen.period * c);
+    cmp[0] = (uint16_t) ((float) handle->pwm_gen.period * a);
+    cmp[1] = (uint16_t) ((float) handle->pwm_gen.period * b);
+    cmp[2] = (uint16_t) ((float) handle->pwm_gen.period * c);
 
-    pwmg_duty.pwmg_x_duty.pwm_duty_outx = cmp_a;
-    drv8311_write(handle, DRV8311_PWMG_A_DUTY_ADDR, pwmg_duty.half_word);
-    pwmg_duty.pwmg_x_duty.pwm_duty_outx = cmp_b;
-    drv8311_write(handle, DRV8311_PWMG_B_DUTY_ADDR, pwmg_duty.half_word);
-    pwmg_duty.pwmg_x_duty.pwm_duty_outx = cmp_c;
-    drv8311_write(handle, DRV8311_PWMG_C_DUTY_ADDR, pwmg_duty.half_word);
+    for (int i = 0; i < 3; ++i) {
+        pwmg_duty[i].pwmg_x_duty.pwm_duty_outx = cmp[i];
+    }
+
+    drv8311_multi_write(handle, DRV8311_PWMG_A_DUTY_ADDR, (uint16_t *) pwmg_duty, 3);
+}
+
+void drv8311_clear_fault(drv8311_handle_t handle) {
+    drv8311_reg_t flt_clr;
+
+    flt_clr.flt_ctrl.flt_clr = 1;
+
+    drv8311_write(handle, DRV8311_FLT_CLR_ADDR, flt_clr.half_word);
 }

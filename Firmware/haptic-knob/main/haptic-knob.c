@@ -43,10 +43,19 @@ void app_main(void) {
     gpio_set_level(CFG1, 0);
 
     platform_foc_init();
+
+//    drv8311_clear_fault(drv8311);
+//    drv8311_out_ctrl(drv8311,1);
+//    float d = 0.3f;
     while (1) {
-        printf("/*%f,%f,%f,%f,%f,%f,%f,%f,%f*/", foc->sensors.i_a, foc->sensors.i_b, foc->sensors.i_c, foc->data.i_d,
-               foc->data.i_q, foc->data.u_d, foc->data.u_q, foc->data.angle_mech / 6.28318530718 * 360,
-               foc->sensors.angle_abs / 6.28318530718 * 360);
-        vTaskDelay(pdMS_TO_TICKS(2));
+//        ESP_LOGI(TAG,"%f", mt6701_get_angle_deg(mt6701));
+//        drv8311_ge
+
+////        drv8311_set_duty(drv8311,d,0,d);
+//        vTaskDelay(pdMS_TO_TICKS(10));
+//        drv8311_set_duty(drv8311,0,d,0);
+        vTaskDelay(pdMS_TO_TICKS(10));
+//        d += 0.05f;
+//        if(d >= 1.f) d = 0;
     }
 }

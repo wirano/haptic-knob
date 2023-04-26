@@ -28,8 +28,8 @@ void cst816d_tp_read(cst816d_tp_data_t *data) {
     data->pos_y = ((rx_data[4] << 8U) | rx_data[5]);
 
 //    ESP_LOG_BUFFER_HEX(TAG, data, sizeof(cst816d_tp_data_t));
-    ESP_LOGI(TAG, "event:%d, pos_x:%d, pos_y:%d", data->event, data->pos_x,
-             data->pos_y);
+//    ESP_LOGI(TAG, "event:%d, pos_x:%d, pos_y:%d", data->event, data->pos_x,
+//             data->pos_y);
 }
 
 void cst816d_tp_init(cst816d_tp_desc_t *desc) {
