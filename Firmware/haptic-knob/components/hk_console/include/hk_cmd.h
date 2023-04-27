@@ -21,4 +21,11 @@
 // SOFTWARE.
 //
 
-void hk_console_init(void);
+//
+// Created by wirano on 23-4-27.
+//
+
+#ifndef HK_CMD_H
+#define HK_CMD_H
+
+#endif //HK_CMD_H

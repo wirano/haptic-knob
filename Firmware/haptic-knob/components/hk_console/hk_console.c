@@ -140,6 +140,6 @@ _Noreturn static void hk_console_task(void *args) {
     }
 }
 
-void vfd_console_init(void) {
+void hk_console_init(void) {
     xTaskCreate(hk_console_task, "hk_console", 4096, NULL, CONFIG_ESP32_PTHREAD_TASK_PRIO_DEFAULT, NULL);
 }
