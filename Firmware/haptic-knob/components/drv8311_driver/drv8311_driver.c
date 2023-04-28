@@ -193,7 +193,7 @@ static void drv8311_write(drv8311_handle_t handle, uint8_t reg, uint16_t data) {
     }
 }
 
-uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
+static uint16_t drv8311_read(drv8311_handle_t handle, uint8_t reg) {
     drv8311_recv_pkg_t rec;
 
     if (handle->interface.protal == SPI) {
@@ -223,13 +223,13 @@ void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg) {
     drv8311_reg_t reg;
     drv8311_instance_t *dev = malloc(sizeof(drv8311_instance_t));
 
+    dev->interface.nsleep_set = cfg->nsleep_set;
+    drv8311_nsleep_ctrl(dev, 1);
+
     dev->interface.protal = cfg->portal;
     dev->interface.devicd_id = cfg->dev_id;
     dev->interface.parity_check = cfg->parity_check;
     dev->interface.spi_trans = cfg->spi_trans;
-    dev->interface.nsleep_set = cfg->nsleep_set;
-
-    drv8311_nsleep_ctrl(dev, 1);
 
     reg.half_word = 0;
     dev->pwm_gen.mode = cfg->pwmcnt_mode;
