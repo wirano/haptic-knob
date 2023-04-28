@@ -29,6 +29,9 @@
 #include "pid.h"
 
 
+#define _limit(a, low, high) (a) < (low) ? (low) : ((a) > (high) ? (high) : (a))
+
+
 #define CALI_CURRENT 0.3f
 
 
@@ -60,7 +63,7 @@ void static dqz_trans(foc_handle_t handler) {
 
     // Park transform
     handler->data.i_d = co * i_alpha + si * i_beta;
-    handler->data.i_q = co * i_alpha - si * i_beta;
+    handler->data.i_q = co * i_beta - si * i_alpha;
 }
 
 void static svpwm_output(foc_handle_t handler) {
@@ -71,16 +74,18 @@ void static svpwm_output(foc_handle_t handler) {
         u_ref = handler->data.u_q * handler->data.u_q + handler->data.u_d * handler->data.u_d;
         u_ref = sqrtf(u_ref) / handler->motor.volt;
 
-        angle_elec = angle_normalize(handler->data.angle_elec) + atan2f(handler->data.u_q, handler->data.u_d);
+        angle_elec = angle_normalize(handler->data.angle_elec + atan2f(handler->data.u_q, handler->data.u_d));
     } else {
         u_ref = handler->data.u_q / handler->motor.volt;
 
         angle_elec = angle_normalize(handler->data.angle_elec + _PI_2);
     }
 
+    u_ref = _limit(u_ref,0,_1_SQRT3);
+
     uint8_t sector = (uint8_t) floorf(angle_elec / _PI_3) + 1;
 
-    float alpha = angle_elec - (float) sector * _PI_3;
+    float alpha = angle_elec - (float) (sector - 1) * _PI_3;
     float T1 = _SQRT3 * u_ref * sinf(_PI_3 - alpha);
     float T2 = _SQRT3 * u_ref * sinf(alpha);
     float T0 = 1.f - T1 - T2;
@@ -140,9 +145,15 @@ void foc_update_sensor(foc_handle_t handle) {
 void foc_current_loop(foc_handle_t handler) {
     dqz_trans(handler);
 
+    handler->data.i_d = lpf(&handler->lpf.i_d,handler->data.i_d);
+    handler->data.i_q = lpf(&handler->lpf.i_q,handler->data.i_q);
+
     handler->data.u_q += PID_IncrementalRealize(handler->pid_ctrl.current_q, handler->data.i_q,
                                                 handler->target.current);
     handler->data.u_d += PID_IncrementalRealize(handler->pid_ctrl.current_d, handler->data.i_d, 0);
+
+    handler->data.u_q = _limit(handler->data.u_q, -handler->motor.volt, handler->motor.volt);
+    handler->data.u_d = _limit(handler->data.u_d, -handler->motor.volt, handler->motor.volt);
 
     svpwm_output(handler);
 }
@@ -182,7 +193,7 @@ void foc_ctrl_loop(foc_handle_t handle) {
             break;
     }
 
-    if(cnt % 100 == 0) cnt = 0;
+    if (cnt % 100 == 0) cnt = 0;
 
     cnt++;
 }
@@ -204,6 +215,15 @@ void foc_init(foc_handle_t *handle, foc_config_t *cfg) {
     foc->hal.update_sensors = cfg->hal.update_sensors;
     foc->hal.driver_enable = cfg->hal.driver_enable;
     foc->hal.delay = cfg->hal.delay;
+    foc->hal.micros = cfg->hal.micros;
+
+    foc->lpf.i_d.micros = cfg->hal.micros;
+    foc->lpf.i_q.micros = cfg->hal.micros;
+    foc->lpf.angle.micros = cfg->hal.micros;
+
+    foc->lpf.i_d.Tf = 0.01f;
+    foc->lpf.i_q.Tf = 0.01f;
+    foc->lpf.angle.Tf = 0.01f;
 
     *handle = foc;
 
@@ -222,6 +242,8 @@ void foc_enable(foc_handle_t handle, uint8_t en) {
 }
 
 void foc_angle_auto_zeroing(foc_handle_t handle) {
+    uint8_t en = handle->status.enabled;
+
     // stop foc ctrl loop
     handle->status.enabled = 0;
     handle->hal.driver_enable(1);
@@ -243,6 +265,6 @@ void foc_angle_auto_zeroing(foc_handle_t handle) {
     handle->data.angle_mech = 0;
     svpwm_output(handle);
 
-    // restart doc ctrl loop
-    handle->status.enabled = 1;
+    // restore foc ctrl state
+    handle->status.enabled = en;
 }

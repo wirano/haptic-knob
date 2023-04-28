@@ -25,6 +25,7 @@
 #define FOC_H
 
 #include "pid.h"
+#include "foc_utils.h"
 #include <stdint.h>
 
 typedef struct foc_hal_t foc_hal_t;
@@ -46,6 +47,8 @@ struct foc_hal_t {
     void (*driver_enable)(uint8_t en);
 
     void (*set_pwm)(float duty_a, float duty_b, float duty_c);
+
+    uint32_t (*micros)(void);
 };
 
 typedef struct {
@@ -95,6 +98,11 @@ struct foc_instance_t {
         float velocity;
         float angle;
     } target;
+    struct {
+        foc_lpf_t i_q;
+        foc_lpf_t i_d;
+        foc_lpf_t angle;
+    }lpf;
 };
 
 void foc_ctrl_loop(foc_handle_t handle);
