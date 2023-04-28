@@ -13,7 +13,7 @@
                     "log": false,
                     "max": 0,
                     "min": 0,
-                    "title": "i_a",
+                    "title": "i_d",
                     "units": "",
                     "value": "%1",
                     "widget": ""
@@ -27,57 +27,9 @@
                     "log": false,
                     "max": 0,
                     "min": 0,
-                    "title": "i_b",
-                    "units": "",
-                    "value": "%2",
-                    "widget": ""
-                },
-                {
-                    "alarm": 0,
-                    "fft": false,
-                    "fftSamples": 1024,
-                    "graph": false,
-                    "led": false,
-                    "log": false,
-                    "max": 0,
-                    "min": 0,
-                    "title": "i_c",
-                    "units": "",
-                    "value": "%3",
-                    "widget": ""
-                }
-            ],
-            "title": "sensor",
-            "widget": "multiplot"
-        },
-        {
-            "datasets": [
-                {
-                    "alarm": 0,
-                    "fft": false,
-                    "fftSamples": 1024,
-                    "graph": false,
-                    "led": false,
-                    "log": false,
-                    "max": 0,
-                    "min": 0,
-                    "title": "i_d",
-                    "units": "",
-                    "value": "%4",
-                    "widget": ""
-                },
-                {
-                    "alarm": 0,
-                    "fft": false,
-                    "fftSamples": 1024,
-                    "graph": false,
-                    "led": false,
-                    "log": false,
-                    "max": 0,
-                    "min": 0,
                     "title": "i_q",
                     "units": "",
-                    "value": "%5",
+                    "value": "%2",
                     "widget": ""
                 }
             ],
@@ -97,7 +49,7 @@
                     "min": 0,
                     "title": "u_d",
                     "units": "",
-                    "value": "%6",
+                    "value": "%3",
                     "widget": ""
                 },
                 {
@@ -111,7 +63,7 @@
                     "min": 0,
                     "title": "u_q",
                     "units": "",
-                    "value": "%7",
+                    "value": "%4",
                     "widget": ""
                 }
             ],
@@ -131,39 +83,59 @@
                     "min": 0,
                     "title": "mech_angle",
                     "units": "",
-                    "value": "%8",
-                    "widget": ""
-                },
-                {
-                    "alarm": 0,
-                    "fft": false,
-                    "fftSamples": 1024,
-                    "graph": false,
-                    "led": false,
-                    "log": false,
-                    "max": 0,
-                    "min": 0,
-                    "title": "raw_angle",
-                    "units": "",
-                    "value": "%9",
-                    "widget": ""
-                },
-                {
-                    "alarm": 0,
-                    "fft": false,
-                    "fftSamples": 1024,
-                    "graph": false,
-                    "led": false,
-                    "log": false,
-                    "max": 0,
-                    "min": 0,
-                    "title": "New dataset",
-                    "units": "",
-                    "value": "%10",
+                    "value": "%5",
                     "widget": ""
                 }
             ],
             "title": "angle",
+            "widget": "multiplot"
+        },
+        {
+            "datasets": [
+                {
+                    "alarm": 0,
+                    "fft": false,
+                    "fftSamples": 1024,
+                    "graph": false,
+                    "led": false,
+                    "log": false,
+                    "max": 0,
+                    "min": 0,
+                    "title": "Ta",
+                    "units": "",
+                    "value": "%6",
+                    "widget": ""
+                },
+                {
+                    "alarm": 0,
+                    "fft": false,
+                    "fftSamples": 1024,
+                    "graph": false,
+                    "led": false,
+                    "log": false,
+                    "max": 0,
+                    "min": 0,
+                    "title": "Tb",
+                    "units": "",
+                    "value": "%7",
+                    "widget": ""
+                },
+                {
+                    "alarm": 0,
+                    "fft": false,
+                    "fftSamples": 1024,
+                    "graph": false,
+                    "led": false,
+                    "log": false,
+                    "max": 0,
+                    "min": 0,
+                    "title": "Tc",
+                    "units": "",
+                    "value": "%8",
+                    "widget": ""
+                }
+            ],
+            "title": "svpwm",
             "widget": "multiplot"
         }
     ],

@@ -32,7 +32,6 @@
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "driver/mcpwm_prelude.h"
-#include "driver/gptimer.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
@@ -91,16 +90,18 @@ uint32_t pid_get_micros(void) {
 }
 
 pid_incremental_t i_d = {
-        .Kp = 4,
-        .Ki = 0,
+        .Kp = 10,
+        .Ki = 0.2f,
         .Kd = 0,
+        .Ki_separation = 2,
         .get_micros = pid_get_micros,
 };
 
 pid_incremental_t i_q = {
-        .Kp = 4,
-        .Ki = 0,
+        .Kp = 10,
+        .Ki = 0.1f,
         .Kd = 0,
+        .Ki_separation = 2,
         .get_micros = pid_get_micros,
 };
 
@@ -186,7 +187,7 @@ current_oneshot(mcpwm_cmpr_handle_t comparator, const mcpwm_compare_event_data_t
     adc_oneshot_read_isr(adc1_handle, adc_ch[adc_cnt], &adc_raw[adc_cnt]);
 
     adc_cnt++;
-    if(adc_cnt == 3) adc_cnt = 0;
+    if (adc_cnt == 3) adc_cnt = 0;
 
     return true;
 }
@@ -196,7 +197,9 @@ void foc_delay(uint32_t delay) {
 }
 
 void foc_setpwm(float duty_a, float duty_b, float duty_c) {
+    drv8311_out_ctrl(drv8311, 1);
     drv8311_set_duty(drv8311, duty_a, duty_b, duty_c);
+    drv8311_out_ctrl(drv8311, 1);
 }
 
 void foc_drver_enable(uint8_t en) {
@@ -232,6 +235,7 @@ void foc_task(void *args) {
                     .set_pwm = foc_setpwm,
                     .driver_enable = foc_drver_enable,
                     .delay = foc_delay,
+                    .micros = pid_get_micros,
             },
             .mode = FOC_MODE_TOR,
             .current_q = &i_q,
@@ -245,17 +249,19 @@ void foc_task(void *args) {
     foc_init(&foc, &foc_cfg);
     foc_angle_auto_zeroing(foc);
 
+    foc->lpf.i_d.Tf = 0.01;
+    foc->lpf.i_q.Tf = 0.01;
     foc->target.current = 0.2f;
     foc_enable(foc, 1);
 
     while (1) {
         foc_ctrl_loop(foc);
-        printf("/*%f*/\n", foc->data.angle_mech / 6.28318530718 * 360);
+//        printf("/*%f,%f*/\n", foc->data.i_q, foc->data.i_d);
         vTaskDelay(pdMS_TO_TICKS(1));
-        uint16_t r = 0;
-        r = drv8311_read(drv8311, DRV8311_PWMG_CTRL_ADDR);
-        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
-    drv8311_out_ctrl(drv8311,1);
+//        uint16_t r = 0;
+//        r = drv8311_read(drv8311, DRV8311_PWMG_CTRL_ADDR);
+//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
+//    drv8311_out_ctrl(drv8311,1);
 //        r = drv8311_read(drv8311, DRV8311_DEV_STS1_ADDR);
 //        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
 //        r = drv8311_read(drv8311, DRV8311_OT_STS_ADDR);
@@ -391,11 +397,11 @@ void spi_dev_init(void) {
 
     drv8311_cfg_t drv8311_cfg = {
             .pwmcnt_mode = UP_DOWN,
-            .sync_mode = SYNC_DISABLE,
+            .sync_mode = SET_PWM_PERIOD,
             .portal = tSPI,
             .csa_gain = CSA_GAIN_2000MV,
 
-            .pwm_period = 400,
+//            .pwm_period = 400,
             .use_csa = 1,
             .dev_id = 0x0,
             .parity_check = 0,
@@ -407,10 +413,10 @@ void spi_dev_init(void) {
     drv8311_init(&drv8311, &drv8311_cfg);
     vTaskDelay(pdMS_TO_TICKS(10));
     // update drv8311 pwm period (used to calculate duty)
-//    uint16_t period = drv8311_update_synced_period(drv8311);
-//    ESP_LOGI(TAG,"synced period: %d",period);
+    drv8311_update_synced_period(drv8311);
 
-    mt6701_init(&mt6701, mt6701_spi_trans);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    mt6701_init(&mt6701, mt6701_spi_trans, pid_get_micros);
 }
 
 void platform_foc_init(void) {

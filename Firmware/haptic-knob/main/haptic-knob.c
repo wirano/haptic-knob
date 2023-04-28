@@ -6,10 +6,8 @@
 #include "esp_adc/adc_cali.h"
 
 #include "lv_port.h"
-#include "mt6701_driver.h"
 #include "foc_platform.h"
-#include "foc.h"
-#include <stdio.h>
+#include "hk_console.h"
 
 #define CFG1    17U
 #define CFG2    18U
@@ -44,18 +42,7 @@ void app_main(void) {
 
     platform_foc_init();
 
-//    drv8311_clear_fault(drv8311);
-//    drv8311_out_ctrl(drv8311,1);
-//    float d = 0.3f;
-    while (1) {
-//        ESP_LOGI(TAG,"%f", mt6701_get_angle_deg(mt6701));
-//        drv8311_ge
+//    hk_console_init();
 
-////        drv8311_set_duty(drv8311,d,0,d);
-//        vTaskDelay(pdMS_TO_TICKS(10));
-//        drv8311_set_duty(drv8311,0,d,0);
-        vTaskDelay(pdMS_TO_TICKS(10));
-//        d += 0.05f;
-//        if(d >= 1.f) d = 0;
-    }
+    vTaskDelete(NULL);
 }
