@@ -33,16 +33,21 @@
 typedef struct {
     uint8_t data_raw[3];
 
+    uint32_t last_time;
+
     void (*over_speed_cb)(void);
 
     void (*btn_pressed_cb)(void);
 
     void (*ssi_read)(uint8_t *rec_buffer, uint8_t rec_len);
+
+    uint32_t (*get_micros)(void);
 } mt6701_instance_t;
 
 typedef mt6701_instance_t *mt6701_handle_t;
 
-void mt6701_init(mt6701_handle_t *handle, void (*ssi_read)(uint8_t *rec_buffer, uint8_t rec_len));
+void mt6701_init(mt6701_handle_t *handle, void (*ssi_read)(uint8_t *rec_buffer, uint8_t rec_len),
+                 uint32_t (*get_micros)(void));
 
 float mt6701_get_angle_deg(mt6701_handle_t handle);
 

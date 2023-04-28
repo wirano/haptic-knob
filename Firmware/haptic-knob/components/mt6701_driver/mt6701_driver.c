@@ -40,13 +40,13 @@
 typedef union {
     struct __attribute__((__packed__)) {
         struct {
-            uint8_t crc : 6;
-            uint8_t mg_state_strength : 2;
+            uint8_t crc: 6;
+            uint8_t mg_state_strength: 2;
         };
         struct {
-            uint16_t mg_state_btn : 1;
-            uint16_t mg_state_speed : 1;
-            uint16_t angle : 14;
+            uint16_t mg_state_btn: 1;
+            uint16_t mg_state_speed: 1;
+            uint16_t angle: 14;
         };
     };
     uint8_t bytes[3];
@@ -74,6 +74,10 @@ static uint8_t crc6_check(const uint8_t *data, uint8_t len) {
 static void mt6701_read_data(mt6701_handle_t handle) {
     uint8_t swap;
     mt6701_rec_data_t *temp;
+
+    uint32_t now = handle->get_micros();
+
+    if(now - handle->last_time < 100) return;
 
     handle->ssi_read(handle->data_raw, sizeof(handle->data_raw));
 
@@ -105,12 +109,16 @@ static void mt6701_read_data(mt6701_handle_t handle) {
             handle->btn_pressed_cb();
         }
     }
+
+    handle->last_time = now;
 }
 
-void mt6701_init(mt6701_handle_t *handle, void (*ssi_read)(uint8_t *rec_buffer, uint8_t rec_len)) {
+void mt6701_init(mt6701_handle_t *handle, void (*ssi_read)(uint8_t *rec_buffer, uint8_t rec_len),
+                 uint32_t (*get_micros)(void)) {
     mt6701_instance_t *dev = malloc(sizeof(mt6701_instance_t));
 
     dev->ssi_read = ssi_read;
+    dev->get_micros = get_micros;
     dev->over_speed_cb = NULL;
     dev->btn_pressed_cb = NULL;
 
