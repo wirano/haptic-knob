@@ -28,4 +28,6 @@
 #ifndef HK_CMD_H
 #define HK_CMD_H
 
+void register_hk_cmd(void);
+
 #endif //HK_CMD_H

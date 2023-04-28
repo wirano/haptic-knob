@@ -28,12 +28,13 @@
 #include "esp_console.h"
 #include "esp_vfs_dev.h"
 #include "linenoise/linenoise.h"
-#include "argtable3/argtable3.h"
+#include "cmd_system.h"
+#include "hk_cmd.h"
 
 #define PROMPT_STR CONFIG_IDF_TARGET
 
 
-static const char *TAG = "vfd_console";
+static const char *TAG = "hk_console";
 
 
 static void initialize_console(void) {
@@ -57,7 +58,8 @@ static void initialize_console(void) {
 
     /* Register commands */
     esp_console_register_help_command();
-    //todo
+    register_system();
+    register_hk_cmd();
 
 
 #if defined(CONFIG_ESP_CONSOLE_UART_DEFAULT) || defined(CONFIG_ESP_CONSOLE_UART_CUSTOM)
@@ -83,8 +85,18 @@ static void initialize_console(void) {
 _Noreturn static void hk_console_task(void *args) {
     initialize_console();
 
+    /* Configure linenoise line completion library */
+    /* Enable multiline editing. If not set, long commands will scroll within
+     * single line.
+     */
+    linenoiseSetMultiLine(1);
 
+    /* Tell linenoise where to get command completions and hints */
     linenoiseSetCompletionCallback(&esp_console_get_completion);
+    linenoiseSetHintsCallback((linenoiseHintsCallback*) &esp_console_get_hint);
+
+    /* Don't return empty lines */
+    linenoiseAllowEmpty(false);
 
     /* Prompt to be printed before each line.
      * This can be customized, made dynamic, etc.
@@ -141,5 +153,5 @@ _Noreturn static void hk_console_task(void *args) {
 }
 
 void hk_console_init(void) {
-    xTaskCreate(hk_console_task, "hk_console", 4096, NULL, CONFIG_ESP32_PTHREAD_TASK_PRIO_DEFAULT, NULL);
+    xTaskCreatePinnedToCore(hk_console_task, "hk_console", 4096, NULL, CONFIG_ESP32_PTHREAD_TASK_PRIO_DEFAULT, NULL, 1);
 }
