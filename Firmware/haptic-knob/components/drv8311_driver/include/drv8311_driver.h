@@ -37,10 +37,12 @@ typedef enum {
 } drv8311_protal_t;
 
 typedef struct {
+    uint8_t inited;
     struct {
         DRV8311_PWMCNTR_MODE_t mode;
         uint16_t period;
     } pwm_gen;
+
     struct {
         uint8_t en;
         DRV8311_CSA_GAIN_t gain;
@@ -79,6 +81,8 @@ typedef drv8311_instance_t *drv8311_handle_t;
 
 
 void drv8311_init(drv8311_handle_t *handle, drv8311_cfg_t *cfg);
+
+void drv8311_deinit(drv8311_handle_t *handle);
 
 void drv8311_nsleep_ctrl(drv8311_handle_t handle, uint8_t level);
 
