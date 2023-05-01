@@ -51,16 +51,16 @@ static int set_kp_cmd(int argc, char **argv) {
 
     switch (loop) {
         case 0:
-            foc->pid_ctrl.current_d->Kp = kp;
+            foc->pid_ctrl.current_d->P = kp;
             break;
         case 1:
-            foc->pid_ctrl.current_q->Kp = kp;
+            foc->pid_ctrl.current_q->P = kp;
             break;
         case 2:
-            foc->pid_ctrl.velocity_loop->Kp = kp;
+            foc->pid_ctrl.velocity_loop->P = kp;
             break;
         case 3:
-            foc->pid_ctrl.angle_loop->Kp = kp;
+            foc->pid_ctrl.angle_loop->P = kp;
             break;
     }
 
@@ -87,16 +87,16 @@ static int set_ki_cmd(int argc, char **argv) {
 
     switch (loop) {
         case 0:
-            foc->pid_ctrl.current_d->Ki = ki;
+            foc->pid_ctrl.current_d->I = ki;
             break;
         case 1:
-            foc->pid_ctrl.current_q->Ki = ki;
+            foc->pid_ctrl.current_q->I = ki;
             break;
         case 2:
-            foc->pid_ctrl.velocity_loop->Ki = ki;
+            foc->pid_ctrl.velocity_loop->I = ki;
             break;
         case 3:
-            foc->pid_ctrl.angle_loop->Ki = ki;
+            foc->pid_ctrl.angle_loop->I = ki;
             break;
     }
 
@@ -123,16 +123,16 @@ static int set_kd_cmd(int argc, char **argv) {
 
     switch (loop) {
         case 0:
-            foc->pid_ctrl.current_d->Kd = kd;
+            foc->pid_ctrl.current_d->D = kd;
             break;
         case 1:
-            foc->pid_ctrl.current_q->Kd = kd;
+            foc->pid_ctrl.current_q->D = kd;
             break;
         case 2:
-            foc->pid_ctrl.velocity_loop->Kd = kd;
+            foc->pid_ctrl.velocity_loop->D = kd;
             break;
         case 3:
-            foc->pid_ctrl.angle_loop->Kd = kd;
+            foc->pid_ctrl.angle_loop->D = kd;
             break;
     }
 

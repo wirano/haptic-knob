@@ -23,13 +23,11 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include "foc.h"
 #include "foc_utils.h"
 #include "math_table.h"
 #include "pid.h"
-
-
-#define _limit(a, low, high) (a) < (low) ? (low) : ((a) > (high) ? (high) : (a))
 
 
 #define CALI_CURRENT 0.3f
@@ -81,7 +79,7 @@ void static svpwm_output(foc_handle_t handler) {
         angle_elec = angle_normalize(handler->data.angle_elec + _PI_2);
     }
 
-    u_ref = _limit(u_ref,0,_1_SQRT3);
+//    u_ref = _limit(u_ref, 0, _1_SQRT3);
 
     uint8_t sector = (uint8_t) floorf(angle_elec / _PI_3) + 1;
 
@@ -126,50 +124,61 @@ void static svpwm_output(foc_handle_t handler) {
             Ta = 0;
             Tb = 0;
             Tc = 0;
-            handler->hal.driver_enable(0);
     }
 
     handler->hal.set_pwm(Ta, Tb, Tc);
 }
 
 void foc_update_sensor(foc_handle_t handle) {
+    uint32_t time_now = handle->hal.micros();
+    float Ts = (float) (time_now - handle->status.vel_prev_time) * 1e-6f;
+    handle->status.vel_prev_time = time_now;
+
     handle->hal.update_sensors(handle);
 
     float angle = handle->sensors.angle_abs - handle->data.angle_zero_offset;
     angle = angle > 0 ? angle : angle + _2PI;
-    handle->data.angle_mech = angle;
 
+    /* get velocity */
+    float angle_delta = angle - handle->data.angle_prev;
+    if (fabsf(angle_delta) > 0.8f * _2PI) handle->data.full_rotations += angle_delta > 0 ? -1 : 1;
+
+    float real_delta = (float) (handle->data.full_rotations - handle->data.full_rotations_prev) * _2PI + angle_delta;
+    handle->data.velocity = real_delta / Ts;
+    handle->data.full_rotations_prev = handle->data.full_rotations;
+    /* end get velocity */
+
+    handle->data.angle_mech += real_delta;
+
+    handle->data.angle_prev = angle;
     handle->data.angle_elec = angle * handle->motor.pole_pairs;
 }
 
 void foc_current_loop(foc_handle_t handler) {
     dqz_trans(handler);
 
-    handler->data.i_d = lpf(&handler->lpf.i_d,handler->data.i_d);
-    handler->data.i_q = lpf(&handler->lpf.i_q,handler->data.i_q);
+    handler->data.i_d = lpf(&handler->lpf.i_d, handler->data.i_d);
+    handler->data.i_q = lpf(&handler->lpf.i_q, handler->data.i_q);
 
-    handler->data.u_q += PID_IncrementalRealize(handler->pid_ctrl.current_q, handler->data.i_q,
+    handler->data.u_q = pid_calc(handler->pid_ctrl.current_q, handler->data.i_q,
                                                 handler->target.current);
-    handler->data.u_d += PID_IncrementalRealize(handler->pid_ctrl.current_d, handler->data.i_d, 0);
-
-    handler->data.u_q = _limit(handler->data.u_q, -handler->motor.volt, handler->motor.volt);
-    handler->data.u_d = _limit(handler->data.u_d, -handler->motor.volt, handler->motor.volt);
+    handler->data.u_d = pid_calc(handler->pid_ctrl.current_d, handler->data.i_d, 0);
 
     svpwm_output(handler);
 }
 
 void foc_velocity_loop(foc_handle_t handler) {
-    float speed = handler->sensors.angle_abs;
+    float speed = handler->data.velocity;
     float target = handler->target.velocity;
 
-    handler->target.current += PID_IncrementalRealize(handler->pid_ctrl.velocity_loop, speed, target);
+    handler->target.current = pid_calc(handler->pid_ctrl.velocity_loop, speed, target);
 }
 
 void foc_angle_loop(foc_handle_t handler) {
-    float angle = handler->sensors.angle_abs;
+    float angle = handler->data.angle_mech;
     float target = handler->target.angle;
 
-    handler->target.velocity += PID_IncrementalRealize(handler->pid_ctrl.angle_loop, angle, target);
+    handler->target.current = pid_calc(handler->pid_ctrl.angle_loop, angle, target);
 }
 
 void foc_ctrl_loop(foc_handle_t handle) {
@@ -181,17 +190,20 @@ void foc_ctrl_loop(foc_handle_t handle) {
 
     switch (handle->status.mode) {
         case FOC_MODE_POS:
-            if (cnt % 100 == 0) {
+            if (cnt % 10 == 0) {
                 foc_angle_loop(handle);
             }
+            break;
         case FOC_MODE_VEL:
             if (cnt % 10 == 0) {
                 foc_velocity_loop(handle);
             }
-        case FOC_MODE_TOR:
-            foc_current_loop(handle);
+            break;
+        default:
             break;
     }
+
+    foc_current_loop(handle);
 
     if (cnt % 100 == 0) cnt = 0;
 
@@ -200,6 +212,7 @@ void foc_ctrl_loop(foc_handle_t handle) {
 
 void foc_init(foc_handle_t *handle, foc_config_t *cfg) {
     foc_instance_t *foc = malloc(sizeof(foc_instance_t));
+    memset(foc, 0, sizeof(foc_instance_t));
 
     foc->status.mode = cfg->mode;
 
@@ -233,6 +246,13 @@ void foc_init(foc_handle_t *handle, foc_config_t *cfg) {
 
 void foc_enable(foc_handle_t handle, uint8_t en) {
     if (en) {
+        // clear old data
+        handle->data.velocity = 0;
+        pid_reset(handle->pid_ctrl.current_d);
+        pid_reset(handle->pid_ctrl.current_q);
+        pid_reset(handle->pid_ctrl.velocity_loop);
+        pid_reset(handle->pid_ctrl.angle_loop);
+
         handle->status.enabled = 1;
         handle->hal.driver_enable(1);
     } else {
@@ -248,12 +268,11 @@ void foc_angle_auto_zeroing(foc_handle_t handle) {
     handle->status.enabled = 0;
     handle->hal.driver_enable(1);
 
-    handle->data.u_q = 0;
-    handle->data.u_d = CALI_CURRENT;
-    handle->data.angle_elec = 0;
+    handle->data.u_q = CALI_CURRENT;
+    handle->data.u_d = 0;
+    handle->data.angle_elec = -_PI_2; // -90 + 90 = 0
     svpwm_output(handle);
-
-    handle->hal.delay(200);
+    handle->hal.delay(300);
 
     handle->hal.update_sensors(handle);
 
@@ -264,6 +283,9 @@ void foc_angle_auto_zeroing(foc_handle_t handle) {
     handle->data.angle_elec = 0;
     handle->data.angle_mech = 0;
     svpwm_output(handle);
+
+    // reset speed
+    handle->data.velocity = 0;
 
     // restore foc ctrl state
     handle->status.enabled = en;

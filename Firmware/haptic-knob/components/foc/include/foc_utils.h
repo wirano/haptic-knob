@@ -8,6 +8,9 @@
 #include <stdint.h>
 
 
+#define _limit(a, low, high) (a) < (low) ? (low) : ((a) > (high) ? (high) : (a))
+
+
 typedef struct {
     uint32_t (*micros)(void);
 
