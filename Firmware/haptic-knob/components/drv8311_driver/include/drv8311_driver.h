@@ -29,7 +29,6 @@
 #define DRV8311_DRIVER_H
 
 #include "drv8311_reg.h"
-#include <stdint.h>
 
 
 typedef enum {

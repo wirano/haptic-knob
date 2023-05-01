@@ -29,7 +29,7 @@
 #define DRV8311_REG_H
 
 #include <stdint.h>
-#include <sys/types.h>
+
 
 typedef enum {
     DRV8311_DEV_STS1_ADDR = 0x00,
