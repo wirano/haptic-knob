@@ -1,7 +1,6 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos//semphr.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
@@ -10,23 +9,21 @@
 #include "esp_async_memcpy.h"
 #include "st77903_driver.h"
 #include "st77903_init_para.h"
+#include "lv_port.h"
 
 
 #define TAG "st77903_driver"
 
-async_memcpy_t async_flush = NULL;
-SemaphoreHandle_t flush_async_sem = NULL;
 
 spi_device_handle_t qspi_lcd_dev;
 st77903_lcd_desc_t lcd_desc;
 //EXT_RAM_BSS_ATTR uint16_t frame_buffer[LCD_Y_SIZE][LCD_HBYTE / 2];
-#if LCD_BPP == 16
-EXT_RAM_BSS_ATTR uint16_t frame_buffer[LCD_Y_SIZE][LCD_X_SIZE];
-#endif
+//#if LCD_BPP == 16
+//EXT_RAM_BSS_ATTR uint16_t frame_buffer[LCD_Y_SIZE][LCD_X_SIZE];
+//#endif
 
-static void _async_flush_init(void);
+uint16_t *frame_buffer = NULL;
 
-static IRAM_ATTR bool lcdqspi_async_memcpy_cb(async_memcpy_t mcp_hdl, async_memcpy_event_t *event, void *cb_args);
 
 static void _qspi_init(void);
 
@@ -49,11 +46,11 @@ void lcdqspi_fill_block(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint
         }
     }
 #elif LCD_BPP == 16
-    if ((x1 < LCD_X_SIZE) && (y1 < LCD_Y_SIZE) && (x1 >= x0) && (y1 >= y0)) {
-        for (int y = y0; y <= y1; y++) {
-            memset(&frame_buffer[y][x0], color, (x1 - x0 + 1) * LCD_PBYTE);
-        }
-    }
+//    if ((x1 < LCD_X_SIZE) && (y1 < LCD_Y_SIZE) && (x1 >= x0) && (y1 >= y0)) {
+//        for (int y = y0; y <= y1; y++) {
+//            memset(&frame_buffer[y][x0], color, (x1 - x0 + 1) * LCD_PBYTE);
+//        }
+//    }
 #endif
 }
 
@@ -79,7 +76,7 @@ void lcdqspi_draw_line(uint32_t x0, uint32_t x1, uint32_t y, uint32_t *pixel) {
             dat++;
         }
 #elif LCD_BPP == 16
-        memcpy(&frame_buffer[y][x0], (uint16_t *) pixel, LCD_PBYTE * (x1 - x0 + 1));
+//        memcpy(&frame_buffer[y][x0], (uint16_t *) pixel, LCD_PBYTE * (x1 - x0 + 1));
 //        ESP_ERROR_CHECK(esp_async_memcpy(async_flush, frame_buffer[y] + x0,
 //                                         (uint16_t *) pixel,
 //                                         LCD_PBYTE * (x1 - x0 + 1),
@@ -92,24 +89,6 @@ void lcdqspi_draw_line(uint32_t x0, uint32_t x1, uint32_t y, uint32_t *pixel) {
 
 static void IRAM_ATTR lcdqspi_te_isr(void *args) {
 
-}
-
-// Callback implementation, running in ISR context
-static IRAM_ATTR bool lcdqspi_async_memcpy_cb(async_memcpy_t mcp_hdl, async_memcpy_event_t *event, void *cb_args) {
-    SemaphoreHandle_t sem = (SemaphoreHandle_t) cb_args;
-    BaseType_t high_task_wakeup = pdFALSE;
-    xSemaphoreGiveFromISR(flush_async_sem,
-                          &high_task_wakeup); // high_task_wakeup set to pdTRUE if some high priority task unblocked
-    return high_task_wakeup == pdTRUE;
-}
-
-
-void lcdspi_fill_block_async(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t *color) {
-    ESP_ERROR_CHECK(
-            esp_async_memcpy(async_flush, frame_buffer[y0], color, (x1 - x0) * (y1 - y0), lcdqspi_async_memcpy_cb,
-                             flush_async_sem));
-    // Wait until the buffer copy is done
-    xSemaphoreTake(flush_async_sem, portMAX_DELAY);
 }
 
 static void lcdqspi_transmit(uint8_t cmd, int len, const uint8_t *data) {
@@ -147,70 +126,39 @@ static void lcdqspi_transmit(uint8_t cmd, int len, const uint8_t *data) {
 }
 
 _Noreturn static void lcd_frame_flush(void *args) {
-    // alloc lcd frame buffer in heap
-//    frame_buffer = (uint8_t **) heap_caps_malloc(LCD_Y_SIZE * sizeof(uint8_t *),
-//                                                 MALLOC_CAP_DMA|MALLOC_CAP_SPIRAM);
-//
-//    for (int i = 0; i < LCD_Y_SIZE; ++i) {
-//        frame_buffer[i] = (uint8_t *) heap_caps_malloc(
-//                LCD_HBYTE * sizeof(uint8_t), MALLOC_CAP_DMA|MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
-//    }
-
-//    lcdqspi_clear(0x00ffff);
-
     while (1) {
-        /* vs(0x61) packet */
-        for (int i = 0; i < LCD_VSW; i++) {
-            lcdqspi_transmit(0x61, 0, NULL);
-            esp_rom_delay_us(40);
+        if (frame_buffer != NULL) {
+            /* vs(0x61) packet */
+            for (int i = 0; i < LCD_VSW; i++) {
+                lcdqspi_transmit(0x61, 0, NULL);
+                esp_rom_delay_us(40);
+            }
+
+            /* hbp(0x60) packet */
+            for (int i = 0; i < LCD_HBP; i++) {
+                lcdqspi_transmit(0x60, 0, NULL);
+                esp_rom_delay_us(40);
+            }
+
+            /* transmit display cache data to lcd line by line */
+
+            for (int i = 0; i < LCD_Y_SIZE; i++) {
+                lcdqspi_transmit(0x60, LCD_HBYTE, (uint8_t *) (&frame_buffer[LCD_X_SIZE * i]));
+            }
+
+            /* hfp(0x60) packet */
+            for (int i = 0; i < LCD_HFP; i++) {
+                lcdqspi_transmit(0x60, 0, NULL);
+                esp_rom_delay_us(40);
+            }
         }
 
-        /* hbp(0x60) packet */
-        for (int i = 0; i < LCD_HBP; i++) {
-            lcdqspi_transmit(0x60, 0, NULL);
-            esp_rom_delay_us(40);
-        }
-
-        /* transmit display cache data to lcd line by line */
-
-        for (int i = 0; i < LCD_Y_SIZE; i++) {
-            lcdqspi_transmit(0x60, LCD_HBYTE, (uint8_t *) frame_buffer[i]);
-        }
-
-        /* hfp(0x60) packet */
-        for (int i = 0; i < LCD_HFP; i++) {
-            lcdqspi_transmit(0x60, 0, NULL);
-            esp_rom_delay_us(40);
-        }
-
+        xTaskNotifyGive(lvgl);
         /* transmit completed, can update frame cache in blanking time */
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(30));
     }
 
-//    for (int i = 0; i < LCD_Y_SIZE; ++i) {
-//        if (frame_buffer[i] != NULL) {
-//            free(frame_buffer[i]);
-//            frame_buffer[i] = NULL;
-//        }
-//    }
-//
-//    if (frame_buffer != NULL) {
-//        free(frame_buffer);
-//        frame_buffer = NULL;
-//    }
-
     vTaskDelete(NULL);
-}
-
-static void _async_flush_init(void) {
-
-    async_memcpy_config_t async_copy_config = ASYNC_MEMCPY_DEFAULT_CONFIG();
-    // update the maximum data stream supported by underlying DMA engine
-    async_copy_config.backlog = 50;
-    async_copy_config.sram_trans_align = 16;
-    async_copy_config.psram_trans_align = 16;
-    ESP_ERROR_CHECK(esp_async_memcpy_install(&async_copy_config, &async_flush)); // install driver, return driver handle
-    flush_async_sem = xSemaphoreCreateBinary();
 }
 
 static void _qspi_init(void) {
@@ -332,7 +280,7 @@ void lcdqspi_initialize(st77903_lcd_desc_t *lcd_init_desc) {
         gpio_set_level(lcd_desc.bl_pin, 1);
     }
 
-
-    xTaskCreatePinnedToCore(lcd_frame_flush, "lcd flush", 4096, NULL, CONFIG_ESP32_PTHREAD_TASK_PRIO_DEFAULT, NULL,
+    xTaskCreatePinnedToCore(lcd_frame_flush, "lcd flush", 4096, NULL, CONFIG_ESP32_PTHREAD_TASK_PRIO_DEFAULT,
+                            NULL,
                             lcd_desc.core_pinned);
 }

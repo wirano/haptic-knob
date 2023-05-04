@@ -9,6 +9,8 @@
  *********************/
 #include "lv_port_disp.h"
 #include "st77903_driver.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_log.h"
 
 /*********************
@@ -40,22 +42,20 @@
 
 #define TAG "lv_port_disp"
 
+EXT_RAM_BSS_ATTR lv_color_t buf_1[MY_DISP_HOR_RES * MY_DISP_HOR_RES];
+EXT_RAM_BSS_ATTR lv_color_t buf_2[MY_DISP_HOR_RES * MY_DISP_HOR_RES];
+
 static void disp_init(void);
 
-static void
-disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
+static void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
 
 void lv_port_disp_init(void) {
     disp_init();
 
     /* Example for 2) */
     static lv_disp_draw_buf_t draw_buf_dsc;
-    static lv_color_t buf_1[MY_DISP_HOR_RES *
-                            40];                        /*A buffer for 40 rows*/
-    static lv_color_t buf_2[MY_DISP_HOR_RES *
-                            40];                        /*An other buffer for 40 rows*/
-    lv_disp_draw_buf_init(&draw_buf_dsc, buf_1, buf_2, MY_DISP_HOR_RES *
-                                                       40);   /*Initialize the display buffer*/
+    lv_disp_draw_buf_init(&draw_buf_dsc, buf_1, buf_2,
+                          MY_DISP_HOR_RES * MY_DISP_HOR_RES);   /*Initialize the display buffer*/
 
     /*-----------------------------------
      * Register the display in LVGL
@@ -75,6 +75,8 @@ void lv_port_disp_init(void) {
 
     /*Set a display buffer*/
     disp_drv.draw_buf = &draw_buf_dsc;
+
+    disp_drv.full_refresh = 1;
 
     /*Finally register the driver*/
     lv_disp_drv_register(&disp_drv);
@@ -122,15 +124,17 @@ void disp_disable_update(void) {
 /*Flush the content of the internal buffer the specific area on the display
  *You can use DMA or any hardware acceleration to do this operation in the background but
  *'lv_disp_flush_ready()' has to be called when finished.*/
-static void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area,
-                       lv_color_t *color_p) {
+static void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p) {
     if (disp_flush_enabled) {
         /*The most simple case (but also the slowest) to put all pixels to the screen one-by-one*/
 
-        for (uint32_t y = area->y1; y <= area->y2; y++) {
-            lcdqspi_draw_line(area->x1, area->x2, y, (uint32_t *) color_p);
-            color_p = color_p + area->x2 - area->x1 + 1;
-        }
+//        for (uint32_t y = area->y1; y <= area->y2; y++) {
+//            lcdqspi_draw_line(area->x1, area->x2, y, (uint32_t *) color_p);
+//            color_p = color_p + area->x2 - area->x1 + 1;
+//
+        ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
+
+        frame_buffer = (uint16_t *)color_p;
     }
 
     /*IMPORTANT!!!

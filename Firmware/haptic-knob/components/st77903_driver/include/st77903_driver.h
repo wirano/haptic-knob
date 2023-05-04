@@ -24,6 +24,10 @@ typedef struct {
     int core_pinned;
 } st77903_lcd_desc_t;
 
+
+extern uint16_t *frame_buffer;
+
+
 void lcdqspi_initialize(st77903_lcd_desc_t *lcd_init_desc);
 
 void lcdqspi_clear(uint32_t color);
