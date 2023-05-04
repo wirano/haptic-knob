@@ -1,13 +1,11 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/projdefs.h"
 #include "freertos/task.h"
-#include "esp_adc/adc_cali.h"
 
 #include "lv_port.h"
-#include "foc_platform.h"
 #include "hk_console.h"
+#include "knob_task.h"
 
 #define CFG1    17U
 #define CFG2    18U
@@ -31,16 +29,14 @@ void app_main(void) {
     gpio_conf.pin_bit_mask = 1 << CFG3;
     gpio_config(&gpio_conf);
 
-    lvgl_init();
-
-    spi_dev_init(); // init drv8311 before query for 12V
-
     // 12V
     gpio_set_level(CFG2, 0);
     gpio_set_level(CFG3, 1);
     gpio_set_level(CFG1, 0);
 
-    platform_foc_init();
+    lvgl_init();
+
+    knob_task_init();
 
 //    hk_console_init();
 

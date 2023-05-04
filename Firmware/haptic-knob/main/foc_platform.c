@@ -68,7 +68,7 @@
 
 foc_handle_t foc;
 
-spi_device_handle_t drv8311_dev;
+spi_device_handle_t drv8311_dev = NULL;
 spi_device_handle_t mt6701_dev;
 
 mcpwm_timer_handle_t mcpwm_timer;
@@ -89,33 +89,51 @@ uint32_t pid_get_micros(void) {
     return esp_timer_get_time();
 }
 
-pid_incremental_t i_d = {
-        .Kp = 10,
-        .Ki = 0.2f,
-        .Kd = 0,
-        .Ki_separation = 2,
+pid_controller_t i_d = {
+        .P = 10.0f,
+        .I = 0.7f,
+        .D = 0.001f,
+        .limit = 12,
+        .output_ramp = 10,
+        .deadzone = 0.f,
+
+        .integral_prev = 0.f,
         .get_micros = pid_get_micros,
 };
 
-pid_incremental_t i_q = {
-        .Kp = 10,
-        .Ki = 0.1f,
-        .Kd = 0,
-        .Ki_separation = 2,
+pid_controller_t i_q = {
+        .P = 3.1f,
+        .I = 0.9f,
+        .D = 0.001f,
+//        .I = 0.0f,
+//        .D = 0.0f,
+        .limit = 12,
+        .output_ramp = 10,
+        .deadzone = 0.f,
+
+        .integral_prev = 0.f,
         .get_micros = pid_get_micros,
 };
 
-pid_incremental_t speed = {
-        .Kp = 0,
-        .Ki = 0,
-        .Kd = 0,
+pid_controller_t speed = {
+        .P = 0.018f,
+        .I = 0.002f,
+        .D = 0.0f,
+        .limit = 1.5f,
+        .output_ramp = 0.5f,
+        .deadzone = 0.f,
+
+        .integral_prev = 0.f,
         .get_micros = pid_get_micros,
 };
 
-pid_incremental_t angle_loop = {
-        .Kp = 0,
-        .Ki = 0,
-        .Kd = 0,
+pid_controller_t angle_loop = {
+        .P = 0.7f,
+        .I = 0.4f,
+        .D = 0.09f,
+        .limit = 1.2f,
+        .deadzone = 0.05f,
+
         .get_micros = pid_get_micros,
 };
 
@@ -226,57 +244,6 @@ void foc_update_sensors(foc_handle_t handler) {
     drv8311_calc_current(drv8311, DRV8311_VREF,
                          volt_a / 1000.f, volt_b / 1000.f, volt_c / 1000.f,
                          &handler->sensors.i_a, &handler->sensors.i_b, &handler->sensors.i_c);
-}
-
-void foc_task(void *args) {
-    foc_config_t foc_cfg = {
-            .hal = {
-                    .update_sensors = foc_update_sensors,
-                    .set_pwm = foc_setpwm,
-                    .driver_enable = foc_drver_enable,
-                    .delay = foc_delay,
-                    .micros = pid_get_micros,
-            },
-            .mode = FOC_MODE_TOR,
-            .current_q = &i_q,
-            .current_d = &i_d,
-            .velocity_loop = &speed,
-            .angle_loop = &angle_loop,
-            .motor_volt = 5,
-            .pole_pairs = 7,
-    };
-
-    foc_init(&foc, &foc_cfg);
-    foc_angle_auto_zeroing(foc);
-
-    foc->lpf.i_d.Tf = 0.01;
-    foc->lpf.i_q.Tf = 0.01;
-    foc->target.current = 0.2f;
-    foc_enable(foc, 1);
-
-    while (1) {
-        foc_ctrl_loop(foc);
-//        printf("/*%f,%f*/\n", foc->data.i_q, foc->data.i_d);
-        vTaskDelay(pdMS_TO_TICKS(1));
-//        uint16_t r = 0;
-//        r = drv8311_read(drv8311, DRV8311_PWMG_CTRL_ADDR);
-//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
-//    drv8311_out_ctrl(drv8311,1);
-//        r = drv8311_read(drv8311, DRV8311_DEV_STS1_ADDR);
-//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
-//        r = drv8311_read(drv8311, DRV8311_OT_STS_ADDR);
-//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
-//        r = drv8311_read(drv8311, DRV8311_SUP_STS_ADDR);
-//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
-//        r = drv8311_read(drv8311, DRV8311_DRV_STS_ADDR);
-//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
-//        r = drv8311_read(drv8311, DRV8311_SYS_STS_ADDR);
-//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
-//        r = drv8311_read(drv8311, DRV8311_PWM_STATE_ADDR);
-//        ESP_LOG_BUFFER_HEX(TAG, &r, 2);
-    }
-
-    vTaskDelete(NULL);
 }
 
 static void sync_pwm_init(void) {
@@ -399,7 +366,7 @@ void spi_dev_init(void) {
             .pwmcnt_mode = UP_DOWN,
             .sync_mode = SET_PWM_PERIOD,
             .portal = tSPI,
-            .csa_gain = CSA_GAIN_2000MV,
+            .csa_gain = CSA_GAIN_1000MV,
 
 //            .pwm_period = 400,
             .use_csa = 1,
@@ -420,5 +387,30 @@ void spi_dev_init(void) {
 }
 
 void platform_foc_init(void) {
-    xTaskCreatePinnedToCore(foc_task, "foc", 4096, NULL, 8, NULL, 0);
+    foc_config_t foc_cfg = {
+            .hal = {
+                    .update_sensors = foc_update_sensors,
+                    .set_pwm = foc_setpwm,
+                    .driver_enable = foc_drver_enable,
+                    .delay = foc_delay,
+                    .micros = pid_get_micros,
+            },
+            .mode = FOC_MODE_VEL,
+            .current_q = &i_q,
+            .current_d = &i_d,
+            .velocity_loop = &speed,
+            .angle_loop = &angle_loop,
+            .motor_volt = 12,
+            .pole_pairs = 7,
+    };
+
+    spi_dev_init();
+
+    foc_init(&foc, &foc_cfg);
+    foc_angle_auto_zeroing(foc);
+
+//    foc->target.current = 0.2f;
+//    foc->target.velocity = 30.f;
+//    foc->target.angle = 3.f;
+    foc_enable(foc, 1);
 }
