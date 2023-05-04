@@ -13,9 +13,14 @@
 
 #include "lv_demos.h"
 
+#include "ui.h"
+
 #define LV_TICK_PERIOD_MS 10
 
 #define TAG "lv_port"
+
+
+TaskHandle_t lvgl = NULL;
 
 //static void lv_tick_task(void *args);
 
@@ -43,8 +48,9 @@ static void lvgl_task(void *args) {
 //    ESP_ERROR_CHECK(
 //            esp_timer_start_periodic(periodic_timer, LV_TICK_PERIOD_MS * 1000));
 
-    lv_demo_benchmark();
+//    lv_demo_benchmark();
 //    lv_demo_music();
+    ui_init();
     while (1) {
         lv_task_handler();
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -56,7 +62,7 @@ static void lvgl_task(void *args) {
 void lvgl_init() {
 
     ESP_LOGI(TAG, "Creating lvgl task");
-    xTaskCreatePinnedToCore(lvgl_task, "lvgl", 4096, NULL, 0, NULL, 1);
+    xTaskCreatePinnedToCore(lvgl_task, "lvgl", 4096, NULL, 0, &lvgl, 1);
 }
 
 // use LV_TICK_CUSTOM instead, in lv_conf.h

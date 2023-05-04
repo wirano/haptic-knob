@@ -13,6 +13,7 @@
 #include "lvgl/lvgl.h"
 #include "cst816d_driver.h"
 #include "esp_log.h"
+#include "knob_task.h"
 
 /*********************
  *      DEFINES
@@ -39,11 +40,11 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data);
 //static void keypad_read(lv_indev_t * indev_drv, lv_indev_data_t * data);
 //static uint32_t keypad_get_key(void);
 
-static void encoder_init(void);
+//static void encoder_init(void);
 
-static void encoder_read(lv_indev_t *indev_drv, lv_indev_data_t *data);
+static void encoder_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data);
 
-static void encoder_handler(void);
+//static void encoder_handler(void);
 
 //static void button_init(void);
 //static void button_read(lv_indev_t * indev_drv, lv_indev_data_t * data);
@@ -58,9 +59,6 @@ lv_indev_t *indev_touchpad;
 //lv_indev_t * indev_keypad;
 lv_indev_t *indev_encoder;
 //lv_indev_t * indev_button;
-
-static int32_t encoder_diff;
-static lv_indev_state_t encoder_state;
 
 /**********************
  *      MACROS
@@ -83,7 +81,7 @@ void lv_port_indev_init(void) {
      *  You should shape them according to your hardware
      */
 
-    static lv_indev_drv_t indev_drv;
+    static lv_indev_drv_t indev_drv_tp, indev_drv_enc;
 
     /*------------------
      * Touchpad
@@ -93,10 +91,10 @@ void lv_port_indev_init(void) {
     touchpad_init();
 
     /*Register a touchpad input device*/
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = touchpad_read;
-    indev_touchpad = lv_indev_drv_register(&indev_drv);
+    lv_indev_drv_init(&indev_drv_tp);
+    indev_drv_tp.type = LV_INDEV_TYPE_POINTER;
+    indev_drv_tp.read_cb = touchpad_read;
+    indev_touchpad = lv_indev_drv_register(&indev_drv_tp);
 
 //    /*------------------
 //     * Mouse
@@ -142,11 +140,11 @@ void lv_port_indev_init(void) {
 //    encoder_init();
 //
 //    /*Register a encoder input device*/
-//    lv_indev_drv_init(&indev_drv);
-//    indev_drv.type = LV_INDEV_TYPE_ENCODER;
-//    indev_drv.read_cb = encoder_read;
-//    indev_encoder = lv_indev_drv_register(&indev_drv);
-//
+    lv_indev_drv_init(&indev_drv_enc);
+    indev_drv_enc.type = LV_INDEV_TYPE_ENCODER;
+    indev_drv_enc.read_cb = encoder_read;
+    indev_encoder = lv_indev_drv_register(&indev_drv_enc);
+
 //    /*Later you should create group(s) with `lv_group_t * group = lv_group_create()`,
 //     *add objects to the group with `lv_group_add_obj(group, obj)`
 //     *and assign this input device to group to navigate in it:
@@ -193,7 +191,7 @@ static void touchpad_init(void) {
     };
     cst816d_tp_init(&tp);
 
-    ESP_LOGI(TAG,"tp initialized");
+    ESP_LOGI(TAG, "tp initialized");
 }
 
 /*Will be called by the library to read the touchpad*/
@@ -204,7 +202,7 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
 
     cst816d_tp_read(&tp_data);
 
-    if(tp_data.finger_num > 0){
+    if (tp_data.finger_num > 0) {
         last_x = tp_data.pos_x;
         last_y = tp_data.pos_y;
         data->state = LV_INDEV_STATE_PRESSED;
@@ -323,24 +321,37 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
  * -----------------*/
 
 /*Initialize your keypad*/
-static void encoder_init(void) {
-    /*Your code comes here*/
-}
+//static void encoder_init(void) {
+//    /*Your code comes here*/
+//}
 
 /*Will be called by the library to read the encoder*/
-static void encoder_read(lv_indev_t *indev_drv, lv_indev_data_t *data) {
+static void encoder_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
+    static int enc_prev;
+    int enc = knob_encoder_read(knob);
 
-    data->enc_diff = encoder_diff;
-    data->state = encoder_state;
+    cst816d_tp_data_t tp_data;
+
+    cst816d_tp_read(&tp_data);
+
+    if (tp_data.finger_num > 0) {
+        data->state = LV_INDEV_STATE_PRESSED;
+    }else{
+        data->state = LV_INDEV_STATE_RELEASED;
+    }
+
+    data->enc_diff = enc - enc_prev;
+
+    enc_prev = enc;
 }
 
 /*Call this function in an interrupt to process encoder events (turn, press)*/
-static void encoder_handler(void) {
-    /*Your code comes here*/
-
-    encoder_diff += 0;
-    encoder_state = LV_INDEV_STATE_REL;
-}
+//static void encoder_handler(void) {
+//    /*Your code comes here*/
+//
+//    encoder_diff += 0;
+//    encoder_state = LV_INDEV_STATE_REL;
+//}
 
 /*------------------
  * Button
