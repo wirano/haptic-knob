@@ -177,3 +177,7 @@ void knob_init(knob_handle_t *handle, foc_handle_t foc) {
 
     *handle = dev;
 }
+
+int knob_encoder_read(knob_handle_t handle) {
+    return handle->encoderPosition;
+}

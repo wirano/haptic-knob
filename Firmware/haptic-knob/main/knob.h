@@ -39,5 +39,7 @@ void knob_loop(knob_handle_t handle);
 
 void knob_set_mode(knob_handle_t handle, knob_mode_t mode);
 
+int knob_encoder_read(knob_handle_t handle);
+
 
 #endif //KNOB_H
