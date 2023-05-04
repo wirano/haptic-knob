@@ -4,4 +4,5 @@ cmake-build-*
 *.dxf~
 *.FCBak
 *-backups
+backup
 fp-info-cache
