@@ -34,6 +34,8 @@ float pid_calc(pid_controller_t *pid, float input, float target) {
     // quick fix for strange cases (micros overflow)
     if(Ts <= 0 || Ts > 0.5f) Ts = 1e-3f;
 
+    if(fabsf(error) < pid->deadzone) return pid->output_prev;
+
     // u(s) = (P + I/s + Ds)e(s)
     // Discrete implementations
     // proportional part
