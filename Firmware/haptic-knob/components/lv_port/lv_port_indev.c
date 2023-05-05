@@ -340,7 +340,7 @@ static void encoder_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
         data->state = LV_INDEV_STATE_RELEASED;
     }
 
-    data->enc_diff = enc - enc_prev;
+    data->enc_diff = -enc + enc_prev;
 
     enc_prev = enc;
 }

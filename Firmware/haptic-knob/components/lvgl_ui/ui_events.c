@@ -25,6 +25,7 @@ void encoder_cb(lv_event_t * e)
 
 void damped_cb(lv_event_t * e)
 {
+    knob_set_zero(knob);
     knob_set_mode(knob,MODE_DAMPED);
 }
 
