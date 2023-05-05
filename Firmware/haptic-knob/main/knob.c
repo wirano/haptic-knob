@@ -48,11 +48,11 @@ void knob_loop(knob_handle_t handle) {
                 a = handle->foc->data.angle_mech - handle->zeroPosition;
                 if (a > handle->limitPositionMax) {
                     handle->foc->status.mode = FOC_MODE_POS;
-                    handle->foc->target.angle = handle->limitPositionMax;
+                    handle->foc->target.angle = handle->limitPositionMax + handle->zeroPosition;
                     pid_reset(handle->foc->pid_ctrl.angle_loop);
                 } else if (a < handle->limitPositionMin) {
                     handle->foc->status.mode = FOC_MODE_POS;
-                    handle->foc->target.angle = handle->limitPositionMin;
+                    handle->foc->target.angle = handle->limitPositionMin + handle->zeroPosition;
                     pid_reset(handle->foc->pid_ctrl.angle_loop);
                 } else {
                     handle->foc->status.mode = FOC_MODE_VEL;
@@ -118,7 +118,7 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
 
             handle->foc->pid_ctrl.angle_loop->P = 0.35f;
             handle->foc->pid_ctrl.angle_loop->I = 0.1f;
-            handle->foc->pid_ctrl.angle_loop->D = 0.09f    ;
+            handle->foc->pid_ctrl.angle_loop->D = 0.09f;
 
             handle->foc->target.angle = 4.2f;
 
@@ -179,5 +179,16 @@ void knob_init(knob_handle_t *handle, foc_handle_t foc) {
 }
 
 int knob_encoder_read(knob_handle_t handle) {
-    return handle->encoderPosition;
+    switch (handle->mode) {
+        case MODE_ENCODER:
+            return handle->encoderPosition;
+        case MODE_DAMPED:
+            return ((handle->foc->data.angle_mech - handle->zeroPosition) / _2PI * 360.f);
+        default:
+            return 0;
+    }
+}
+
+void knob_set_zero(knob_handle_t handle) {
+    handle->zeroPosition = handle->foc->data.angle_mech;
 }
