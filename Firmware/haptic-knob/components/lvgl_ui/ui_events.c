@@ -21,3 +21,18 @@ void update_lable(lv_event_t * e)
     lv_obj_t *lable = lv_event_get_current_target(e);
     lv_label_set_text_fmt(lable,"%d", knob_encoder_read(knob));
 }
+
+void encoder_cb(lv_event_t * e)
+{
+	// Your code here
+}
+
+void damped_cb(lv_event_t * e)
+{
+	// Your code here
+}
+
+void light_cb(lv_event_t * e)
+{
+	// Your code here
+}
