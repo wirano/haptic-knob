@@ -13,26 +13,22 @@ void init_action(lv_event_t * e)
     lv_group_t *g = lv_group_create();
     lv_group_set_default(g);
     lv_indev_set_group(indev_encoder, g);
+    lv_group_add_obj(g,ui_Arc1);
     lv_group_add_obj(g,ui_Arc2);
-}
-
-void update_lable(lv_event_t * e)
-{
-    lv_obj_t *lable = lv_event_get_current_target(e);
-    lv_label_set_text_fmt(lable,"%d", knob_encoder_read(knob));
+    lv_group_add_obj(g,ui_Arc4);
 }
 
 void encoder_cb(lv_event_t * e)
 {
-	// Your code here
+    knob_set_mode(knob,MODE_ENCODER);
 }
 
 void damped_cb(lv_event_t * e)
 {
-	// Your code here
+    knob_set_mode(knob,MODE_DAMPED);
 }
 
 void light_cb(lv_event_t * e)
 {
-	// Your code here
+    knob_set_mode(knob,MODE_ENCODER);
 }

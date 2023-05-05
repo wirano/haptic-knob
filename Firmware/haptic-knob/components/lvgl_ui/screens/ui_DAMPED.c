@@ -51,5 +51,6 @@ void ui_DAMPED_screen_init(void)
 
     lv_obj_add_event_cb(ui_Arc4, ui_event_Arc4, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button3, ui_event_Button3, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_DAMPED, ui_event_DAMPED, LV_EVENT_ALL, NULL);
 
 }

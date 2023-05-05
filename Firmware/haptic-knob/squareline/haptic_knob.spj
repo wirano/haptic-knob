@@ -606,7 +606,7 @@
                       {
                         "nid": -1519366281,
                         "strtype": "CHANGE SCREEN/Speed",
-                        "integer": 500,
+                        "integer": 100,
                         "InheritedType": 6
                       },
                       {
@@ -1262,7 +1262,7 @@
                       {
                         "nid": 788860355,
                         "strtype": "CHANGE SCREEN/Speed",
-                        "integer": 500,
+                        "integer": 100,
                         "InheritedType": 6
                       },
                       {
@@ -1918,7 +1918,7 @@
                       {
                         "nid": 1431435669,
                         "strtype": "CHANGE SCREEN/Speed",
-                        "integer": 500,
+                        "integer": 100,
                         "InheritedType": 6
                       },
                       {
@@ -3216,7 +3216,7 @@
                       {
                         "nid": 2085953199,
                         "strtype": "CHANGE SCREEN/Speed",
-                        "integer": 500,
+                        "integer": 100,
                         "InheritedType": 6
                       },
                       {
@@ -3963,80 +3963,10 @@
             "strtype": "SCREEN/Style_scrollbar",
             "strval": "lv.PART.SCROLLBAR, Rectangle, Pad",
             "InheritedType": 11
-          },
-          {
-            "disabled": false,
-            "nid": -122046446,
-            "strtype": "_event/EventHandler",
-            "strval": "SCREEN_LOAD_START",
-            "childs": [
-              {
-                "nid": -137976730,
-                "strtype": "_custom/name",
-                "strval": "Event2",
-                "InheritedType": 10
-              },
-              {
-                "nid": 518205428,
-                "strtype": "_custom/condition_C",
-                "strval": "",
-                "InheritedType": 10
-              },
-              {
-                "nid": -1371988079,
-                "strtype": "_custom/condition_P",
-                "strval": "",
-                "InheritedType": 10
-              },
-              {
-                "nid": -101471554,
-                "strtype": "_event/action",
-                "strval": "SET TEXT VALUE FROM ARC",
-                "childs": [
-                  {
-                    "nid": 251734539,
-                    "strtype": "SET TEXT VALUE FROM ARC/Name",
-                    "strval": "SET TEXT VALUE FROM ARC",
-                    "InheritedType": 10
-                  },
-                  {
-                    "nid": -114054932,
-                    "strtype": "SET TEXT VALUE FROM ARC/Call",
-                    "strval": "SetTextValueArc( <{Target}>, event_struct.get_target(), \"<{Prefix}>\", \"<{Postfix}>\")",
-                    "InheritedType": 10
-                  },
-                  {
-                    "nid": -440259414,
-                    "strtype": "SET TEXT VALUE FROM ARC/CallC",
-                    "strval": "_ui_arc_set_text_value( <{Target}>, target, \"<{Prefix}>\", \"<{Postfix}>\");",
-                    "InheritedType": 10
-                  },
-                  {
-                    "nid": -671227668,
-                    "strtype": "SET TEXT VALUE FROM ARC/Target",
-                    "strval": "GUID2365831-809437S3882125",
-                    "InheritedType": 9
-                  },
-                  {
-                    "nid": 1081030171,
-                    "strtype": "SET TEXT VALUE FROM ARC/Prefix",
-                    "strval": "",
-                    "InheritedType": 10
-                  },
-                  {
-                    "nid": -1631429822,
-                    "strtype": "SET TEXT VALUE FROM ARC/Postfix",
-                    "strval": "",
-                    "InheritedType": 10
-                  }
-                ],
-                "InheritedType": 10
-              }
-            ],
-            "InheritedType": 4
           }
         ],
-        "saved_objtypeKey": "SCREEN"
+        "saved_objtypeKey": "SCREEN",
+        "tree_closed": true
       },
       {
         "guid": "GUID36978919-808055S5082124",
@@ -5019,7 +4949,7 @@
                       {
                         "nid": -1736174429,
                         "strtype": "CHANGE SCREEN/Speed",
-                        "integer": 500,
+                        "integer": 100,
                         "InheritedType": 6
                       },
                       {
@@ -6078,8 +6008,9 @@
               {
                 "disabled": false,
                 "nid": 433970082,
+                "flags": 1048576,
                 "strtype": "_event/EventHandler",
-                "strval": "CLICKED",
+                "strval": "VALUE_CHANGED",
                 "childs": [
                   {
                     "nid": -1753302906,
@@ -7066,7 +6997,6 @@
                   {
                     "disabled": false,
                     "nid": 1855889709,
-                    "flags": 1048576,
                     "strtype": "_event/EventHandler",
                     "strval": "CLICKED",
                     "childs": [
@@ -7339,6 +7269,82 @@
                 "strtype": "BUTTON/Style_main",
                 "strval": "lv.PART.MAIN, Rectangle, Pad, Text ",
                 "InheritedType": 11
+              },
+              {
+                "disabled": false,
+                "nid": 496224118,
+                "strtype": "_event/EventHandler",
+                "strval": "CLICKED",
+                "childs": [
+                  {
+                    "nid": 753381792,
+                    "strtype": "_custom/name",
+                    "strval": "Event14",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": -1011214773,
+                    "strtype": "_custom/condition_C",
+                    "strval": "",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 162680902,
+                    "strtype": "_custom/condition_P",
+                    "strval": "",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": -1165776160,
+                    "strtype": "_event/action",
+                    "strval": "CHANGE SCREEN",
+                    "childs": [
+                      {
+                        "nid": 693278245,
+                        "strtype": "CHANGE SCREEN/Name",
+                        "strval": "CHANGE SCREEN",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 747054316,
+                        "strtype": "CHANGE SCREEN/Call",
+                        "strval": "ChangeScreen( <{Screen_to}>, lv.SCR_LOAD_ANIM.<{Fade_mode}>, <{Speed}>, <{Delay}>)",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 2079329918,
+                        "strtype": "CHANGE SCREEN/CallC",
+                        "strval": "_ui_screen_change( <{Screen_to}>, LV_SCR_LOAD_ANIM_<{Fade_mode}>, <{Speed}>, <{Delay}>);",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1219637434,
+                        "strtype": "CHANGE SCREEN/Screen_to",
+                        "strval": "GUID89522658-827566S7812124",
+                        "InheritedType": 9
+                      },
+                      {
+                        "nid": -1669919023,
+                        "strtype": "CHANGE SCREEN/Fade_mode",
+                        "strval": "FADE_ON",
+                        "InheritedType": 3
+                      },
+                      {
+                        "nid": -1724691782,
+                        "strtype": "CHANGE SCREEN/Speed",
+                        "integer": 100,
+                        "InheritedType": 6
+                      },
+                      {
+                        "nid": 459923066,
+                        "strtype": "CHANGE SCREEN/Delay",
+                        "InheritedType": 6
+                      }
+                    ],
+                    "InheritedType": 10
+                  }
+                ],
+                "InheritedType": 4
               }
             ],
             "saved_objtypeKey": "BUTTON"
@@ -8164,11 +8170,10 @@
     "offset_x": 0,
     "offset_y": 0,
     "shape": "CIRCLE",
-    "multilang": "DISABLE",
     "description": "",
     "board": "Eclipse with SDL for development on PC",
     "board_version": "v1.0.2",
-    "editor_version": "1.3.0",
+    "editor_version": "1.2.3",
     "image": "",
     "force_export_images": false,
     "pointfilter": false,
@@ -8176,9 +8181,9 @@
     "theme_dark": false,
     "theme_color1": 5,
     "theme_color2": 0,
-    "exportFolderPath": "/home/wirano/Workspace/code/espressif/ESP32-S3/haptic-knob/Firmware/haptic-knob/components/lvgl_ui",
-    "projectExportFolderPath": "/home/wirano/Workspace/code/espressif/ESP32-S3/haptic-knob/Firmware/haptic-knob/components/lvgl_ui",
-    "backup_cnt": 10,
+    "exportFolderPath": "/home/wirano/haptic-knob/Firmware/haptic-knob/components/lvgl_ui",
+    "projectExportFolderPath": "/home/wirano/haptic-knob/Firmware/haptic-knob/components/lvgl_ui",
+    "backup_cnt": 11,
     "autosave_cnt": 0,
     "lvgl_version": "8.3.4",
     "callfuncsexport": "C_FILE",

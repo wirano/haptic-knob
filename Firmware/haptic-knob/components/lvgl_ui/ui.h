@@ -40,6 +40,7 @@ extern lv_obj_t * ui_Panel1;
 extern lv_obj_t * ui_Label9;
 // SCREEN: ui_DAMPED
 void ui_DAMPED_screen_init(void);
+void ui_event_DAMPED(lv_event_t * e);
 extern lv_obj_t * ui_DAMPED;
 void ui_event_Arc4(lv_event_t * e);
 extern lv_obj_t * ui_Arc4;
@@ -50,11 +51,13 @@ extern lv_obj_t * ui_Panel2;
 extern lv_obj_t * ui_Label10;
 // SCREEN: ui_LIGHT
 void ui_LIGHT_screen_init(void);
+void ui_event_LIGHT(lv_event_t * e);
 extern lv_obj_t * ui_LIGHT;
 void ui_event_Arc2(lv_event_t * e);
 extern lv_obj_t * ui_Arc2;
 extern lv_obj_t * ui_Label4;
 extern lv_obj_t * ui_Label5;
+void ui_event_Button1(lv_event_t * e);
 extern lv_obj_t * ui_Button1;
 void ui_event_Label6(lv_event_t * e);
 extern lv_obj_t * ui_Label6;

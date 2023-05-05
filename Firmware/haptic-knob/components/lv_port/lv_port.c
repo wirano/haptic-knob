@@ -53,7 +53,7 @@ static void lvgl_task(void *args) {
     ui_init();
     while (1) {
         lv_task_handler();
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(LV_TICK_PERIOD_MS));
     }
 
     vTaskDelete(NULL);
