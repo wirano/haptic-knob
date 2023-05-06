@@ -29,5 +29,5 @@ void knob_task_init(void) {
 
     knob_set_mode(knob,MODE_ENCODER);
 
-    xTaskCreatePinnedToCore(knob_task, "knob", 4096, NULL, 32, NULL, 0);
+    xTaskCreatePinnedToCore(knob_task, "knob", 4096, NULL, 32, NULL, 1);
 }

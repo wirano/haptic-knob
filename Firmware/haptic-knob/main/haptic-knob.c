@@ -2,10 +2,13 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "nvs_flash.h"
 
 #include "lv_port.h"
 #include "hk_console.h"
 #include "knob_task.h"
+#include "wifi.h"
+#include "mqtt.h"
 
 #define CFG1    17U
 #define CFG2    18U
@@ -33,6 +36,12 @@ void app_main(void) {
     gpio_set_level(CFG2, 0);
     gpio_set_level(CFG3, 1);
     gpio_set_level(CFG1, 0);
+
+    nvs_flash_init();
+
+    wifi_init_sta();
+
+    mqtt_app_start();
 
     lvgl_init();
 
