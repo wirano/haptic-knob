@@ -45,6 +45,5 @@ void ui_ENCODER_screen_init(void)
 
     lv_obj_add_event_cb(ui_Arc1, ui_event_Arc1, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button2, ui_event_Button2, LV_EVENT_ALL, NULL);
-    lv_obj_add_event_cb(ui_ENCODER, ui_event_ENCODER, LV_EVENT_ALL, NULL);
 
 }

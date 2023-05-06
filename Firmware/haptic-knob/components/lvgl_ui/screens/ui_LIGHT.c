@@ -63,6 +63,5 @@ void ui_LIGHT_screen_init(void)
     lv_obj_add_event_cb(ui_Arc2, ui_event_Arc2, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Label6, ui_event_Label6, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button1, ui_event_Button1, LV_EVENT_ALL, NULL);
-    lv_obj_add_event_cb(ui_LIGHT, ui_event_LIGHT, LV_EVENT_ALL, NULL);
 
 }

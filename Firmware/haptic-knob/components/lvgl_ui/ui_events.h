@@ -14,6 +14,7 @@ void init_action(lv_event_t * e);
 void encoder_cb(lv_event_t * e);
 void damped_cb(lv_event_t * e);
 void light_cb(lv_event_t * e);
+void light_tuning(lv_event_t * e);
 
 #ifdef __cplusplus
 } /*extern "C"*/

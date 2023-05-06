@@ -26,3 +26,7 @@ def damped_cb(event_struct):
 def light_cb(event_struct):
     return
 
+
+def light_tuning(event_struct):
+    return
+
