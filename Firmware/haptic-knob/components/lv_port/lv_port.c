@@ -62,7 +62,7 @@ static void lvgl_task(void *args) {
 void lvgl_init() {
 
     ESP_LOGI(TAG, "Creating lvgl task");
-    xTaskCreatePinnedToCore(lvgl_task, "lvgl", 4096, NULL, 0, &lvgl, 0);
+    xTaskCreatePinnedToCore(lvgl_task, "lvgl", 8192, NULL, 0, &lvgl, 0);
 }
 
 // use LV_TICK_CUSTOM instead, in lv_conf.h

@@ -2299,7 +2299,6 @@
               },
               {
                 "nid": -339770232,
-                "flags": 1048576,
                 "strtype": "OBJECT/Flags",
                 "InheritedType": 1
               },
@@ -2425,7 +2424,6 @@
               },
               {
                 "nid": 70606544,
-                "flags": 1048576,
                 "strtype": "OBJECT/States",
                 "InheritedType": 1
               },
@@ -2444,7 +2442,7 @@
               {
                 "nid": -297438460,
                 "strtype": "OBJECT/Focused",
-                "strval": "False",
+                "strval": "True",
                 "InheritedType": 2
               },
               {
@@ -3965,8 +3963,7 @@
             "InheritedType": 11
           }
         ],
-        "saved_objtypeKey": "SCREEN",
-        "tree_closed": true
+        "saved_objtypeKey": "SCREEN"
       },
       {
         "guid": "GUID36978919-808055S5082124",
@@ -4177,7 +4174,7 @@
               {
                 "nid": -832533205,
                 "strtype": "OBJECT/Focused",
-                "strval": "False",
+                "strval": "True",
                 "InheritedType": 2
               },
               {
@@ -4278,7 +4275,7 @@
                 "disabled": false,
                 "nid": 2057873523,
                 "strtype": "_event/EventHandler",
-                "strval": "CLICKED",
+                "strval": "VALUE_CHANGED",
                 "childs": [
                   {
                     "nid": 1097840172,
@@ -5909,7 +5906,7 @@
               {
                 "nid": -655091973,
                 "strtype": "OBJECT/Focused",
-                "strval": "False",
+                "strval": "True",
                 "InheritedType": 2
               },
               {
@@ -6008,7 +6005,6 @@
               {
                 "disabled": false,
                 "nid": 433970082,
-                "flags": 1048576,
                 "strtype": "_event/EventHandler",
                 "strval": "VALUE_CHANGED",
                 "childs": [
@@ -6070,6 +6066,44 @@
                         "strtype": "SET TEXT VALUE FROM ARC/Postfix",
                         "strval": "",
                         "InheritedType": 10
+                      }
+                    ],
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": -82745644,
+                    "strtype": "_event/action",
+                    "strval": "CALL FUNCTION",
+                    "childs": [
+                      {
+                        "nid": -937472464,
+                        "strtype": "CALL FUNCTION/Name",
+                        "strval": "CALL FUNCTION",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": -1937490570,
+                        "strtype": "CALL FUNCTION/Call",
+                        "strval": "<{Function_name}>( event_struct )",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": -40130168,
+                        "strtype": "CALL FUNCTION/CallC",
+                        "strval": "<{Function_name}>( e );",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 800273265,
+                        "strtype": "CALL FUNCTION/Function_name",
+                        "strval": "light_tuning",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": -2047464834,
+                        "strtype": "CALL FUNCTION/Dont_export_function",
+                        "strval": "False",
+                        "InheritedType": 2
                       }
                     ],
                     "InheritedType": 10
@@ -8170,10 +8204,11 @@
     "offset_x": 0,
     "offset_y": 0,
     "shape": "CIRCLE",
+    "multilang": "DISABLE",
     "description": "",
     "board": "Eclipse with SDL for development on PC",
     "board_version": "v1.0.2",
-    "editor_version": "1.2.3",
+    "editor_version": "1.3.0",
     "image": "",
     "force_export_images": false,
     "pointfilter": false,
@@ -8181,8 +8216,8 @@
     "theme_dark": false,
     "theme_color1": 5,
     "theme_color2": 0,
-    "exportFolderPath": "/home/wirano/haptic-knob/Firmware/haptic-knob/components/lvgl_ui",
-    "projectExportFolderPath": "/home/wirano/haptic-knob/Firmware/haptic-knob/components/lvgl_ui",
+    "exportFolderPath": "/home/wirano/Workspace/code/espressif/ESP32-S3/haptic-knob/Firmware/haptic-knob/components/lvgl_ui",
+    "projectExportFolderPath": "/home/wirano/Workspace/code/espressif/ESP32-S3/haptic-knob/Firmware/haptic-knob/components/lvgl_ui",
     "backup_cnt": 11,
     "autosave_cnt": 0,
     "lvgl_version": "8.3.4",

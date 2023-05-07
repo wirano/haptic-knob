@@ -14,6 +14,7 @@ void ui_DAMPED_screen_init(void)
     lv_obj_set_width(ui_Arc4, 380);
     lv_obj_set_height(ui_Arc4, 380);
     lv_obj_set_align(ui_Arc4, LV_ALIGN_CENTER);
+    lv_obj_add_state(ui_Arc4, LV_STATE_FOCUSED);       /// States
     lv_arc_set_range(ui_Arc4, -51, 51);
     lv_arc_set_value(ui_Arc4, 1);
     lv_arc_set_bg_angles(ui_Arc4, 219, 321);

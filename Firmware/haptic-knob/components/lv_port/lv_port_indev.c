@@ -4,6 +4,9 @@
  */
 
 /*Copy this file as "lv_port_indev.c" and set this value to "1" to enable content*/
+#include "foc_platform.h"
+#include <stdio.h>
+
 #if 1
 
 /*********************
@@ -328,7 +331,8 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
 /*Will be called by the library to read the encoder*/
 static void encoder_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
     static int enc_prev;
-    int enc = knob_encoder_read(knob);
+//    int enc = knob_encoder_read(knob);
+    int enc = (foc->data.angle_mech / 3.14 * 180);
 
     cst816d_tp_data_t tp_data;
 
@@ -336,11 +340,13 @@ static void encoder_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
 
     if (tp_data.finger_num > 0) {
         data->state = LV_INDEV_STATE_PRESSED;
-    }else{
+    } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
 
     data->enc_diff = -enc + enc_prev;
+
+    printf("%d\n",data->enc_diff);
 
     enc_prev = enc;
 }

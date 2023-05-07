@@ -14,6 +14,7 @@ void ui_ENCODER_screen_init(void)
     lv_obj_set_width(ui_Arc1, 380);
     lv_obj_set_height(ui_Arc1, 380);
     lv_obj_set_align(ui_Arc1, LV_ALIGN_CENTER);
+    lv_obj_add_state(ui_Arc1, LV_STATE_FOCUSED);       /// States
 
     ui_Button2 = lv_btn_create(ui_ENCODER);
     lv_obj_set_width(ui_Button2, 100);

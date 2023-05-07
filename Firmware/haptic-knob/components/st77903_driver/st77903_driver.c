@@ -153,9 +153,9 @@ _Noreturn static void lcd_frame_flush(void *args) {
             }
         }
 
-        xTaskNotifyGive(lvgl);
+//        xTaskNotifyGive(lvgl);
         /* transmit completed, can update frame cache in blanking time */
-        vTaskDelay(pdMS_TO_TICKS(30));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 
     vTaskDelete(NULL);

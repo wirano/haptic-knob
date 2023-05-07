@@ -132,7 +132,7 @@ static void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_
 //            lcdqspi_draw_line(area->x1, area->x2, y, (uint32_t *) color_p);
 //            color_p = color_p + area->x2 - area->x1 + 1;
 //
-        ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
+//        ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
 
         frame_buffer = (uint16_t *)color_p;
     }
