@@ -32,12 +32,12 @@ void knob_loop(knob_handle_t handle) {
             if (a - handle->lastAngle > _PI / (float) handle->encoderDivides) {
                 handle->foc->target.angle += _2PI / (float) handle->encoderDivides;
                 handle->lastAngle = handle->foc->target.angle;
-                pid_reset(handle->foc->pid_ctrl.angle_loop);
+//                pid_reset(handle->foc->pid_ctrl.angle_loop);
                 handle->encoderPosition++;
             } else if (a - handle->lastAngle < -_PI / (float) handle->encoderDivides) {
                 handle->foc->target.angle -= _2PI / (float) handle->encoderDivides;
                 handle->lastAngle = handle->foc->target.angle;
-                pid_reset(handle->foc->pid_ctrl.angle_loop);
+//                pid_reset(handle->foc->pid_ctrl.angle_loop);
                 handle->encoderPosition--;
             }
             break;
@@ -49,15 +49,15 @@ void knob_loop(knob_handle_t handle) {
                 if (a > handle->limitPositionMax) {
                     handle->foc->status.mode = FOC_MODE_POS;
                     handle->foc->target.angle = handle->limitPositionMax + handle->zeroPosition;
-                    pid_reset(handle->foc->pid_ctrl.angle_loop);
+//                    pid_reset(handle->foc->pid_ctrl.angle_loop);
                 } else if (a < handle->limitPositionMin) {
                     handle->foc->status.mode = FOC_MODE_POS;
                     handle->foc->target.angle = handle->limitPositionMin + handle->zeroPosition;
-                    pid_reset(handle->foc->pid_ctrl.angle_loop);
+//                    pid_reset(handle->foc->pid_ctrl.angle_loop);
                 } else {
                     handle->foc->status.mode = FOC_MODE_VEL;
                     handle->foc->target.velocity = 0;
-                    pid_reset(handle->foc->pid_ctrl.velocity_loop);
+//                    pid_reset(handle->foc->pid_ctrl.velocity_loop);
                 }
             }
             break;
@@ -73,8 +73,8 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
     handle->lastAngle = handle->foc->data.angle_mech;
     handle->lastVelocity = handle->foc->data.velocity;
 
-    pid_reset(handle->foc->pid_ctrl.velocity_loop);
-    pid_reset(handle->foc->pid_ctrl.angle_loop);
+//    pid_reset(handle->foc->pid_ctrl.velocity_loop);
+//    pid_reset(handle->foc->pid_ctrl.angle_loop);
 
     switch (mode) {
         case MODE_DISABLE:
@@ -82,12 +82,12 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             handle->mode = MODE_DISABLE;
             break;
         case MODE_INERTIA:
-            handle->foc->pid_ctrl.current_q->limit = 6.f;
-            handle->foc->status.mode = FOC_MODE_VEL;
-
-            handle->foc->pid_ctrl.velocity_loop->P = 0.18f;
-            handle->foc->pid_ctrl.velocity_loop->I = 0.02f;
-            handle->foc->pid_ctrl.velocity_loop->D = 0;
+//            handle->foc->pid_ctrl.current_q->limit = 6.f;
+//            handle->foc->status.mode = FOC_MODE_VEL;
+//
+//            handle->foc->pid_ctrl.velocity_loop->P = 0.18f;
+//            handle->foc->pid_ctrl.velocity_loop->I = 0.02f;
+//            handle->foc->pid_ctrl.velocity_loop->D = 0;
 
 
             handle->foc->target.velocity = 0;
@@ -97,12 +97,12 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             foc_enable(handle->foc, 1);
             break;
         case MODE_ENCODER:
-            handle->foc->pid_ctrl.current_q->limit = 12;
-            handle->foc->status.mode = FOC_MODE_POS;
-
-            handle->foc->pid_ctrl.angle_loop->P = 1.7f;
-            handle->foc->pid_ctrl.angle_loop->I = 0.0f;
-            handle->foc->pid_ctrl.angle_loop->D = 0.2f;
+//            handle->foc->pid_ctrl.current_q->limit = 12;
+//            handle->foc->status.mode = FOC_MODE_POS;
+//
+//            handle->foc->pid_ctrl.angle_loop->P = 1.7f;
+//            handle->foc->pid_ctrl.angle_loop->I = 0.0f;
+//            handle->foc->pid_ctrl.angle_loop->D = 0.2f;
 
             handle->foc->target.angle = 4.2f;
 
@@ -113,12 +113,12 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             foc_enable(handle->foc, 1);
             break;
         case MODE_SPRING:
-            handle->foc->pid_ctrl.current_q->limit = 12;
-            handle->foc->status.mode = FOC_MODE_POS;
-
-            handle->foc->pid_ctrl.angle_loop->P = 0.35f;
-            handle->foc->pid_ctrl.angle_loop->I = 0.1f;
-            handle->foc->pid_ctrl.angle_loop->D = 0.09f;
+//            handle->foc->pid_ctrl.current_q->limit = 12;
+//            handle->foc->status.mode = FOC_MODE_POS;
+//
+//            handle->foc->pid_ctrl.angle_loop->P = 0.35f;
+//            handle->foc->pid_ctrl.angle_loop->I = 0.1f;
+//            handle->foc->pid_ctrl.angle_loop->D = 0.09f;
 
             handle->foc->target.angle = 4.2f;
 
@@ -127,16 +127,16 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             foc_enable(handle->foc, 1);
             break;
         case MODE_DAMPED:
-            handle->foc->pid_ctrl.current_q->limit = 12;
-            handle->foc->status.mode = FOC_MODE_VEL;
-
-            handle->foc->pid_ctrl.angle_loop->P = 0.35f;
-            handle->foc->pid_ctrl.angle_loop->I = 0.0f;
-            handle->foc->pid_ctrl.angle_loop->D = 0.0f;
-
-            handle->foc->pid_ctrl.velocity_loop->P = 0.018f;
-            handle->foc->pid_ctrl.velocity_loop->I = 0.002f;
-            handle->foc->pid_ctrl.velocity_loop->D = 0;
+//            handle->foc->pid_ctrl.current_q->limit = 12;
+//            handle->foc->status.mode = FOC_MODE_VEL;
+//
+//            handle->foc->pid_ctrl.angle_loop->P = 0.35f;
+//            handle->foc->pid_ctrl.angle_loop->I = 0.0f;
+//            handle->foc->pid_ctrl.angle_loop->D = 0.0f;
+//
+//            handle->foc->pid_ctrl.velocity_loop->P = 0.018f;
+//            handle->foc->pid_ctrl.velocity_loop->I = 0.002f;
+//            handle->foc->pid_ctrl.velocity_loop->D = 0;
 
             handle->foc->target.velocity = 0;
 
@@ -145,12 +145,12 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             foc_enable(handle->foc, 1);
             break;
         case MODE_SPIN:
-            handle->foc->pid_ctrl.current_q->limit = 12;
-            handle->foc->status.mode = FOC_MODE_VEL;
-
-            handle->foc->pid_ctrl.velocity_loop->P = 0.18f;
-            handle->foc->pid_ctrl.velocity_loop->I = 0.02f;
-            handle->foc->pid_ctrl.velocity_loop->D = 0;
+//            handle->foc->pid_ctrl.current_q->limit = 12;
+//            handle->foc->status.mode = FOC_MODE_VEL;
+//
+//            handle->foc->pid_ctrl.velocity_loop->P = 0.18f;
+//            handle->foc->pid_ctrl.velocity_loop->I = 0.02f;
+//            handle->foc->pid_ctrl.velocity_loop->D = 0;
 
             handle->foc->target.velocity = 15;
 

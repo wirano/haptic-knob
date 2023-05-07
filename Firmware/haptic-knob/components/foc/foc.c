@@ -160,9 +160,9 @@ void foc_current_loop(foc_handle_t handler) {
     handler->data.i_d = lpf(&handler->lpf.i_d, handler->data.i_d);
     handler->data.i_q = lpf(&handler->lpf.i_q, handler->data.i_q);
 
-    handler->data.u_q = pid_calc(handler->pid_ctrl.current_q, handler->data.i_q,
-                                                handler->target.current);
-    handler->data.u_d = pid_calc(handler->pid_ctrl.current_d, handler->data.i_d, 0);
+    handler->data.u_q = MyPID(handler->pid_ctrl.current_q, handler->pid_ctrl.current_hz, handler->target.current,
+                              handler->data.i_q);
+    handler->data.u_d = MyPID(handler->pid_ctrl.current_d, handler->pid_ctrl.current_hz, 0, handler->data.i_d);
 
     svpwm_output(handler);
 }
@@ -170,15 +170,14 @@ void foc_current_loop(foc_handle_t handler) {
 void foc_velocity_loop(foc_handle_t handler) {
     float speed = handler->data.velocity;
     float target = handler->target.velocity;
-
-    handler->target.current = pid_calc(handler->pid_ctrl.velocity_loop, speed, target);
+    handler->target.current = MyPID(handler->pid_ctrl.velocity_loop, handler->pid_ctrl.velocity_hz, target, speed);
 }
 
 void foc_angle_loop(foc_handle_t handler) {
     float angle = handler->data.angle_mech;
     float target = handler->target.angle;
 
-    handler->target.current = pid_calc(handler->pid_ctrl.angle_loop, angle, target);
+    handler->target.current = MyPID(handler->pid_ctrl.angle_loop, handler->pid_ctrl.angle_hz, target, angle);
 }
 
 void foc_ctrl_loop(foc_handle_t handle) {
@@ -224,6 +223,10 @@ void foc_init(foc_handle_t *handle, foc_config_t *cfg) {
     foc->pid_ctrl.velocity_loop = cfg->velocity_loop;
     foc->pid_ctrl.angle_loop = cfg->angle_loop;
 
+    foc->pid_ctrl.current_hz = cfg->current_hz;
+    foc->pid_ctrl.velocity_hz = cfg->velocity_hz;
+    foc->pid_ctrl.angle_hz = cfg->angle_hz;
+
     foc->hal.set_pwm = cfg->hal.set_pwm;
     foc->hal.update_sensors = cfg->hal.update_sensors;
     foc->hal.driver_enable = cfg->hal.driver_enable;
@@ -248,10 +251,10 @@ void foc_enable(foc_handle_t handle, uint8_t en) {
     if (en) {
         // clear old data
         handle->data.velocity = 0;
-        pid_reset(handle->pid_ctrl.current_d);
-        pid_reset(handle->pid_ctrl.current_q);
-        pid_reset(handle->pid_ctrl.velocity_loop);
-        pid_reset(handle->pid_ctrl.angle_loop);
+//        pid_reset(handle->pid_ctrl.current_d);
+//        pid_reset(handle->pid_ctrl.current_q);
+//        pid_reset(handle->pid_ctrl.velocity_loop);
+//        pid_reset(handle->pid_ctrl.angle_loop);
 
         handle->status.enabled = 1;
         handle->hal.driver_enable(1);

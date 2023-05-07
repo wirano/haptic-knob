@@ -89,61 +89,89 @@ uint32_t pid_get_micros(void) {
     return esp_timer_get_time();
 }
 
-pid_controller_t i_d = {
-        .P = 10.0f,
-        .I = 0.7f,
-        .D = 0.001f,
-        .limit = 12,
-        .output_ramp = 10,
-        .deadzone = 0.f,
+PIDSt i_d = {
+        .Param = {
+                .Kp = 30,
+                .Ki = 600,
+                .Kd = 0,
 
-        .integral_prev = 0.f,
-        .get_micros = pid_get_micros,
+                .ErrLim = 1,
+                .ErrOutLim = 12,
+
+                .InteErrLim = 1,
+                .InteLim = 0.003f,
+                .InteOutLim = 12,
+
+                .DiffLim = 12,
+                .DiffOutLim  = 12,
+
+                .OutLim = 12,
+                .OutDeltaLim = 12,
+        }
 };
 
-pid_controller_t i_q = {
-        .P = 3.1f,
-        .I = 0.9f,
-        .D = 0.001f,
-//        .I = 0.0f,
-//        .D = 0.0f,
-        .limit = 12,
-        .output_ramp = 10,
-        .deadzone = 0.f,
+PIDSt i_q = {
+        .Param = {
+                .Kp = 25,
+                .Ki = 2500,
+                .Kd = 0,
 
-        .integral_prev = 0.f,
-        .get_micros = pid_get_micros,
+                .ErrLim = 1,
+                .ErrOutLim = 12,
+
+                .InteErrLim = 1,
+                .InteLim = 0.002f,
+                .InteOutLim = 12,
+
+                .DiffLim = 12,
+                .DiffOutLim  = 12,
+
+                .OutLim = 12,
+                .OutDeltaLim = 12,
+        }
 };
 
-pid_controller_t speed = {
-        .P = 0.018f,
-        .I = 0.002f,
-        .D = 0.0f,
-        .limit = 1.5f,
-        .output_ramp = 0.5f,
-        .deadzone = 0.f,
+PIDSt speed = {
+        .Param = {
+                .Kp = .05f,
+                .Ki = 0,
+                .Kd = 0,
 
-        .integral_prev = 0.f,
-        .get_micros = pid_get_micros,
+                .ErrLim = 50,
+                .ErrOutLim = 0.4f,
+
+                .InteErrLim = 30,
+                .InteLim = 0.4f,
+                .InteOutLim = 0.4f,
+
+                .DiffLim = 0.4f,
+                .DiffOutLim  = 0.4f,
+
+                .OutLim = 0.4f,
+                .OutDeltaLim = 0.4f,
+        }
 };
 
-pid_controller_t angle_loop = {
-        .P = 0.7f,
-        .I = 0.4f,
-        .D = 0.09f,
-        .limit = 1.2f,
-        .deadzone = 0.05f,
+PIDSt angle_loop = {
+        .Param = {
+                .Kp = 0,
+                .Ki = 0,
+                .Kd = 0,
 
-        .get_micros = pid_get_micros,
+                .ErrLim = 0,
+                .ErrOutLim = 30,
+
+                .InteErrLim = 1,
+                .InteLim = 0,
+                .InteOutLim = 30,
+
+                .DiffLim = 0,
+                .DiffOutLim  = 30,
+
+                .OutLim = 30,
+                .OutDeltaLim = 30,
+        }
 };
-
-//void drv8311_cs_low(spi_transaction_t *trans) {
-//    gpio_set_level(DRV8311_CS_PIN, 0);
-//}
-//
-//void drv8311_cs_high(spi_transaction_t *trans) {
-//    gpio_set_level(DRV8311_CS_PIN, 1);
-//}
 
 void drv8311_spi_trans(uint8_t *send_data, uint8_t send_len, uint8_t *rec_data, uint8_t rec_len) {
     union {
@@ -400,6 +428,9 @@ void platform_foc_init(void) {
             .current_d = &i_d,
             .velocity_loop = &speed,
             .angle_loop = &angle_loop,
+            .current_hz = 1000,
+            .velocity_hz = 100,
+            .angle_hz = 100,
             .motor_volt = 12,
             .pole_pairs = 7,
     };

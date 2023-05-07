@@ -55,10 +55,13 @@ typedef struct {
     uint8_t pole_pairs;
     float motor_volt;
     foc_mode_t mode;
-    pid_controller_t *current_q;
-    pid_controller_t *current_d;
-    pid_controller_t *velocity_loop;
-    pid_controller_t *angle_loop;
+    uint16_t current_hz;
+    uint16_t velocity_hz;
+    uint16_t angle_hz;
+    PIDSt *current_q;
+    PIDSt *current_d;
+    PIDSt *velocity_loop;
+    PIDSt *angle_loop;
     foc_hal_t hal;
 } foc_config_t;
 
@@ -93,10 +96,13 @@ struct foc_instance_t {
         float velocity; // rad/s
     } data;
     struct {
-        pid_controller_t *current_q;
-        pid_controller_t *current_d;
-        pid_controller_t *velocity_loop;
-        pid_controller_t *angle_loop;
+        uint16_t current_hz;
+        uint16_t velocity_hz;
+        uint16_t angle_hz;
+        PIDSt *current_q;
+        PIDSt *current_d;
+        PIDSt *velocity_loop;
+        PIDSt *angle_loop;
     } pid_ctrl;
     struct {
         float current;

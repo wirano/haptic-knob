@@ -101,7 +101,7 @@
                     "log": false,
                     "max": 0,
                     "min": 0,
-                    "title": "Ta",
+                    "title": "current",
                     "units": "",
                     "value": "%6",
                     "widget": ""
@@ -115,7 +115,7 @@
                     "log": false,
                     "max": 0,
                     "min": 0,
-                    "title": "Tb",
+                    "title": "velcity",
                     "units": "",
                     "value": "%7",
                     "widget": ""
@@ -129,13 +129,13 @@
                     "log": false,
                     "max": 0,
                     "min": 0,
-                    "title": "Tc",
+                    "title": "angle",
                     "units": "",
                     "value": "%8",
                     "widget": ""
                 }
             ],
-            "title": "svpwm",
+            "title": "target",
             "widget": "multiplot"
         }
     ],

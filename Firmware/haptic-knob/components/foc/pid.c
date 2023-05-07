@@ -1,79 +1,95 @@
-//MIT License
-//
-//Copyright (c) 2020 Antun Skuric
-//
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-//
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-//
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
-
 #include "pid.h"
 #include <math.h>
 #include "foc_utils.h"
 
 
-float pid_calc(pid_controller_t *pid, float input, float target) {
-    float error = target - input;
-    // calculate the time from the last call
-    unsigned long timestamp_now = pid->get_micros();
-    float Ts = (timestamp_now - pid->timestamp_prev) * 1e-6f;
-    // quick fix for strange cases (micros overflow)
-    if(Ts <= 0 || Ts > 0.5f) Ts = 1e-3f;
+#define LIMIT(x, min, max) (((x) <= (min)) ? (min) : (((x) > (max)) ? (max) : (x)))
 
-    if(fabsf(error) < pid->deadzone) return pid->output_prev;
 
-    // u(s) = (P + I/s + Ds)e(s)
-    // Discrete implementations
-    // proportional part
-    // u_p  = P *e(k)
-    float proportional = pid->P * error;
-    // Tustin transform of the integral part
-    // u_ik = u_ik_1  + I*Ts/2*(ek + ek_1)
-    float integral = pid->integral_prev + pid->I*Ts*0.5f*(error + pid->error_prev);
-    // antiwindup - limit the output
-    integral = _limit(integral, -pid->limit, pid->limit);
-    // Discrete derivation
-    // u_dk = D(ek - ek_1)/Ts
-    float derivative = pid->D*(error - pid->error_prev)/Ts;
-
-    // sum all the components
-    float output = proportional + integral + derivative;
-    // antiwindup - limit the output variable
-    output = _limit(output, -pid->limit, pid->limit);
-
-    // if output ramp defined
-    if(pid->output_ramp > 0){
-        // limit the acceleration by ramping the output
-        float output_rate = (output - pid->output_prev)/Ts;
-        if (output_rate > pid->output_ramp)
-            output = pid->output_prev + pid->output_ramp*Ts;
-        else if (output_rate < -pid->output_ramp)
-            output = pid->output_prev - pid->output_ramp*Ts;
+/**
+ * @brief PID控制器
+ * @param pid PID结构体指针
+ * @param hz 任务频率
+ * @param expect 期望值
+ * @param feedback 反馈值
+ * @return PID输出值
+ */
+float MyPID(PIDSt *pid, uint16_t hz, float expect, float feedback)
+{
+    if (hz == 0)
+    {
+        pid->Data.Err = 0;
+        pid->Data.ErrLim = 0;
+        pid->Data.Integral=0;
+        pid->Data.IntegralLim = 0;
+        pid->Data.ErrOld = 0;
+        pid->Data.Differential = 0;
+        pid->Data.DifferentialLim = 0;
+        pid->Data.Result = 0;
+        pid->Data.Out = 0;
+        pid->Data.OutOld=0;
     }
-    // saving for the next pass
-    pid->integral_prev = integral;
-    pid->output_prev = output;
-    pid->error_prev = error;
-    pid->timestamp_prev = timestamp_now;
-    return output;
+    else
+    {
+        pid->Data.Err = expect - feedback;
+        pid->Data.ErrLim = LIMIT(pid->Data.Err, -1 * pid->Param.ErrLim, pid->Param.ErrLim);
+        pid->Data.Integral += ( (LIMIT(pid->Data.Err, -1 * pid->Param.InteErrLim, pid->Param.InteErrLim)) / (float) hz );
+        pid->Data.IntegralLim = LIMIT(pid->Data.Integral, -1 * pid->Param.InteLim, pid->Param.InteLim);
+        pid->Data.Integral = pid->Data.IntegralLim;
+        pid->Data.Differential = (pid->Data.Err - pid->Data.ErrOld) * (float) hz;
+        pid->Data.DifferentialLim = LIMIT(pid->Data.Differential, -1 * pid->Param.DiffLim, pid->Param.DiffLim);
+        pid->Data.ErrOld = pid->Data.Err;
+
+        pid->Data.Result = LIMIT(pid->Param.Kp * pid->Data.ErrLim, -1 * pid->Param.ErrOutLim, pid->Param.ErrOutLim ) +
+                           LIMIT(pid->Param.Ki * pid->Data.IntegralLim, -1 * pid->Param.InteOutLim, pid->Param.InteOutLim ) +
+                           LIMIT(pid->Param.Kd * pid->Data.DifferentialLim, -1 * pid->Param.DiffOutLim, pid->Param.DiffOutLim );
+        pid->Data.Out = LIMIT(pid->Data.Result, -1 * pid->Param.OutLim, pid->Param.OutLim);
+        pid->Data.OutDelta = LIMIT(pid->Data.Out-pid->Data.OutOld,-1*pid->Param.OutDeltaLim,pid->Param.OutDeltaLim) ;
+        pid->Data.Out = pid->Data.OutOld+pid->Data.OutDelta;
+        pid->Data.OutOld=pid->Data.Out;
+    }
+
+    return pid->Data.Out;
 }
 
-void pid_reset(pid_controller_t *pid){
-    pid->integral_prev = 0;
-    pid->error_prev = 0;
-    pid->output_prev = 0;
+/**
+ * @brief 为PID控制器设置参数，因为参数比较多，所以将控制器参数分开单独设置，而不采用传参的方式传入PID控制器，避免繁杂的传参
+ * @param pid PID结构体指针
+ * @param kp 比例系数
+ * @param ki 积分系数
+ * @param kd 微分系数
+ * @param err_lim 比例误差限幅
+ * @param err_out_lim 比例输出限幅
+ * @param inte_err_lim 积分误差限幅
+ * @param inte_lim 积分限幅
+ * @param inte_out_lim 积分输出限幅
+ * @param diff_lim 微分限幅
+ * @param diff_out_lim 微分输出限幅
+ * @param out_lim 输出限幅
+ * @param out_delta_lim 输出增量限幅
+ * @out 无
+ */
+void MyPIDSetParameter(PIDSt *pid,
+                              float kp, float ki, float kd,
+                              float err_lim, float err_out_lim,
+                              float inte_err_lim, float inte_lim, float inte_out_lim,
+                              float diff_lim, float diff_out_lim,
+                              float out_lim ,float out_delta_lim)
+{
+    pid->Param.Kp=kp;
+    pid->Param.Ki=ki;
+    pid->Param.Kd=kd;
+    pid->Param.ErrLim=err_lim;
+    pid->Param.ErrOutLim=err_out_lim;
+    pid->Param.InteErrLim=inte_err_lim;
+    pid->Param.InteLim=inte_lim;
+    pid->Param.InteOutLim=inte_out_lim;
+    pid->Param.DiffLim=diff_lim;
+    pid->Param.DiffOutLim=diff_out_lim;
+    pid->Param.OutLim=out_lim;
+    pid->Param.OutDeltaLim=out_delta_lim;
+
+    pid->Data.Integral=0;
+    pid->Data.ErrOld=0;
+    pid->Data.OutOld=0;
 }

@@ -5,7 +5,6 @@
 #include "nvs_flash.h"
 
 #include "lv_port.h"
-#include "hk_console.h"
 #include "knob_task.h"
 #include "wifi.h"
 #include "mqtt.h"
@@ -39,15 +38,13 @@ void app_main(void) {
 
     nvs_flash_init();
 
-    wifi_init_sta();
+//    wifi_init_sta();
 
-    mqtt_app_start();
+//    mqtt_app_start();
 
     lvgl_init();
 
     knob_task_init();
-
-//    hk_console_init();
 
     vTaskDelete(NULL);
 }

@@ -38,7 +38,7 @@ void light_tuning(lv_event_t *e) {
     char data[5];
     lv_obj_t *arc = lv_event_get_target(e);
     int brightness = lv_arc_get_value(arc);
-    int size = snprintf(data, sizeof(data), "%d", brightness);
+//    int size = snprintf(data, sizeof(data), "%d", brightness);
 
-    esp_mqtt_client_publish(mqtt_client, "homeassistant/light/yeelink_lamp22_5b33_light/set", data, size, 0, 0);
+//    esp_mqtt_client_publish(mqtt_client, "homeassistant/light/yeelink_lamp22_5b33_light/set", data, size, 0, 0);
 }
