@@ -14,6 +14,11 @@
 void knob_loop(knob_handle_t handle) {
     float a, v;
 
+    if (handle->foc->status.enabled == 0 && handle->mode != MODE_DISABLE)
+        foc_enable(handle->foc, 1);
+    if (handle->foc->status.enabled == 1 && handle->mode == MODE_DISABLE)
+        foc_enable(handle->foc, 0);
+
     switch (handle->mode) {
         case MODE_DISABLE:
             break;
@@ -78,7 +83,6 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
 
     switch (mode) {
         case MODE_DISABLE:
-            foc_enable(handle->foc, 0);
             handle->mode = MODE_DISABLE;
             break;
         case MODE_INERTIA:
@@ -93,8 +97,6 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             handle->foc->target.velocity = 0;
 
             handle->mode = MODE_INERTIA;
-
-            foc_enable(handle->foc, 1);
             break;
         case MODE_ENCODER:
             handle->foc->pid_ctrl.current_q->limit = 12;
@@ -109,8 +111,6 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             handle->lastAngle = 4.2f;
 
             handle->mode = MODE_ENCODER;
-
-            foc_enable(handle->foc, 1);
             break;
         case MODE_SPRING:
             handle->foc->pid_ctrl.current_q->limit = 12;
@@ -123,8 +123,6 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             handle->foc->target.angle = 4.2f;
 
             handle->mode = MODE_SPRING;
-
-            foc_enable(handle->foc, 1);
             break;
         case MODE_DAMPED:
             handle->foc->pid_ctrl.current_q->limit = 12;
@@ -141,8 +139,6 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             handle->foc->target.velocity = 0;
 
             handle->mode = MODE_DAMPED;
-
-            foc_enable(handle->foc, 1);
             break;
         case MODE_SPIN:
             handle->foc->pid_ctrl.current_q->limit = 12;
@@ -155,8 +151,6 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             handle->foc->target.velocity = 15;
 
             handle->mode = MODE_SPIN;
-
-            foc_enable(handle->foc, 1);
             break;
     }
 }
