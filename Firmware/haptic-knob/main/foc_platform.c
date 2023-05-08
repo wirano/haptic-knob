@@ -216,7 +216,7 @@ void foc_delay(uint32_t delay) {
 
 void foc_setpwm(float duty_a, float duty_b, float duty_c) {
     drv8311_out_ctrl(drv8311, 1);
-    drv8311_set_duty(drv8311, duty_a, duty_b, duty_c);
+    drv8311_set_duty(drv8311, duty_c, duty_b, duty_a);
     drv8311_out_ctrl(drv8311, 1);
 }
 
@@ -242,7 +242,7 @@ void foc_update_sensors(foc_handle_t handler) {
     adc_cali_raw_to_voltage(adc1_cali_handle, adc_raw[2], &volt_c);
 
     drv8311_calc_current(drv8311, DRV8311_VREF,
-                         volt_a / 1000.f, volt_b / 1000.f, volt_c / 1000.f,
+                         volt_c / 1000.f, volt_b / 1000.f, volt_a / 1000.f,
                          &handler->sensors.i_a, &handler->sensors.i_b, &handler->sensors.i_c);
 }
 
