@@ -68,6 +68,10 @@ void knob_loop(knob_handle_t handle) {
             break;
         case MODE_SPIN:
             break;
+        case MODE_SWITCH:
+            handle->foc->status.enabled = 0;
+            handle->foc->hal.set_pwm(0.5, 0, 0);
+            break;
     }
 
     foc_ctrl_loop(handle->foc);
@@ -151,6 +155,10 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             handle->foc->target.velocity = 15;
 
             handle->mode = MODE_SPIN;
+            break;
+        case MODE_SWITCH:
+            handle->foc->status.enabled = 0;
+            handle->foc->hal.set_pwm(0.2f, 0, 0);
             break;
     }
 }

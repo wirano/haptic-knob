@@ -14,7 +14,8 @@ typedef enum {
     MODE_ENCODER,
     MODE_SPRING,
     MODE_DAMPED,
-    MODE_SPIN
+    MODE_SPIN,
+    MODE_SWITCH
 } knob_mode_t;
 
 typedef struct {
