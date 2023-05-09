@@ -15,6 +15,7 @@ void ui_LIGHT_screen_init(void)
     lv_obj_set_height(ui_Arc2, 380);
     lv_obj_set_align(ui_Arc2, LV_ALIGN_CENTER);
     lv_obj_add_state(ui_Arc2, LV_STATE_FOCUSED);       /// States
+    lv_arc_set_value(ui_Arc2, 100);
     lv_arc_set_bg_angles(ui_Arc2, 180, 0);
 
     ui_Label4 = lv_label_create(ui_LIGHT);
@@ -59,6 +60,7 @@ void ui_LIGHT_screen_init(void)
     lv_obj_set_width(ui_Label11, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label11, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_align(ui_Label11, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label11, "100");
     lv_obj_set_style_text_font(ui_Label11, &lv_font_montserrat_20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     lv_obj_add_event_cb(ui_Arc2, ui_event_Arc2, LV_EVENT_ALL, NULL);

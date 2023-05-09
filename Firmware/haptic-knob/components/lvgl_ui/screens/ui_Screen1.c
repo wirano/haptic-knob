@@ -13,8 +13,8 @@ void ui_Screen1_screen_init(void)
     ui_enc = lv_btn_create(ui_Screen1);
     lv_obj_set_width(ui_enc, 160);
     lv_obj_set_height(ui_enc, 60);
-    lv_obj_set_x(ui_enc, 0);
-    lv_obj_set_y(ui_enc, -90);
+    lv_obj_set_x(ui_enc, lv_pct(0));
+    lv_obj_set_y(ui_enc, lv_pct(-30));
     lv_obj_set_align(ui_enc, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_enc, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_clear_flag(ui_enc, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -29,6 +29,8 @@ void ui_Screen1_screen_init(void)
     ui_damped = lv_btn_create(ui_Screen1);
     lv_obj_set_width(ui_damped, 160);
     lv_obj_set_height(ui_damped, 60);
+    lv_obj_set_x(ui_damped, lv_pct(0));
+    lv_obj_set_y(ui_damped, lv_pct(10));
     lv_obj_set_align(ui_damped, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_damped, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_clear_flag(ui_damped, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -43,8 +45,8 @@ void ui_Screen1_screen_init(void)
     ui_light = lv_btn_create(ui_Screen1);
     lv_obj_set_width(ui_light, 160);
     lv_obj_set_height(ui_light, 60);
-    lv_obj_set_x(ui_light, 0);
-    lv_obj_set_y(ui_light, 90);
+    lv_obj_set_x(ui_light, lv_pct(0));
+    lv_obj_set_y(ui_light, lv_pct(30));
     lv_obj_set_align(ui_light, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_light, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_clear_flag(ui_light, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -56,9 +58,25 @@ void ui_Screen1_screen_init(void)
     lv_label_set_text(ui_Label3, "LIGHT");
     lv_obj_set_style_text_font(ui_Label3, &lv_font_montserrat_24, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    ui_Button5 = lv_btn_create(ui_Screen1);
+    lv_obj_set_width(ui_Button5, 160);
+    lv_obj_set_height(ui_Button5, 60);
+    lv_obj_set_x(ui_Button5, 0);
+    lv_obj_set_y(ui_Button5, lv_pct(-10));
+    lv_obj_set_align(ui_Button5, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_Button5, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_clear_flag(ui_Button5, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_Label13 = lv_label_create(ui_Button5);
+    lv_obj_set_width(ui_Label13, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label13, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_Label13, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label13, "SWITCH");
+    lv_obj_set_style_text_font(ui_Label13, &lv_font_montserrat_24, LV_PART_MAIN | LV_STATE_DEFAULT);
+
     lv_obj_add_event_cb(ui_enc, ui_event_enc, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_damped, ui_event_damped, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_light, ui_event_light, LV_EVENT_ALL, NULL);
-    lv_obj_add_event_cb(ui_Screen1, ui_event_Screen1, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_Button5, ui_event_Button5, LV_EVENT_ALL, NULL);
 
 }

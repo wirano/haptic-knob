@@ -18,7 +18,6 @@ extern "C" {
 #include "ui_events.h"
 // SCREEN: ui_Screen1
 void ui_Screen1_screen_init(void);
-void ui_event_Screen1(lv_event_t * e);
 extern lv_obj_t * ui_Screen1;
 void ui_event_enc(lv_event_t * e);
 extern lv_obj_t * ui_enc;
@@ -29,6 +28,9 @@ extern lv_obj_t * ui_Label2;
 void ui_event_light(lv_event_t * e);
 extern lv_obj_t * ui_light;
 extern lv_obj_t * ui_Label3;
+void ui_event_Button5(lv_event_t * e);
+extern lv_obj_t * ui_Button5;
+extern lv_obj_t * ui_Label13;
 // SCREEN: ui_ENCODER
 void ui_ENCODER_screen_init(void);
 extern lv_obj_t * ui_ENCODER;
@@ -62,6 +64,15 @@ void ui_event_Label6(lv_event_t * e);
 extern lv_obj_t * ui_Label6;
 extern lv_obj_t * ui_Panel3;
 extern lv_obj_t * ui_Label11;
+// SCREEN: ui_SWITCH
+void ui_SWITCH_screen_init(void);
+extern lv_obj_t * ui_SWITCH;
+void ui_event_Arc5(lv_event_t * e);
+extern lv_obj_t * ui_Arc5;
+void ui_event_Button6(lv_event_t * e);
+extern lv_obj_t * ui_Button6;
+extern lv_obj_t * ui_Label14;
+extern lv_obj_t * ui_Label15;
 void ui_event____initial_actions0(lv_event_t * e);
 extern lv_obj_t * ui____initial_actions0;
 

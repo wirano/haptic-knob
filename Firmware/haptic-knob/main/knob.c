@@ -70,7 +70,7 @@ void knob_loop(knob_handle_t handle) {
             break;
         case MODE_SWITCH:
             handle->foc->status.enabled = 0;
-            handle->foc->hal.set_pwm(0.5, 0, 0);
+            handle->foc->hal.set_pwm(0.2f, 0, 0);
             break;
     }
 
@@ -81,6 +81,8 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
 
     handle->lastAngle = handle->foc->data.angle_mech;
     handle->lastVelocity = handle->foc->data.velocity;
+
+    handle->foc->status.enabled = 1;
 
     pid_reset(handle->foc->pid_ctrl.velocity_loop);
     pid_reset(handle->foc->pid_ctrl.angle_loop);
@@ -158,7 +160,6 @@ void knob_set_mode(knob_handle_t handle, knob_mode_t mode) {
             break;
         case MODE_SWITCH:
             handle->foc->status.enabled = 0;
-            handle->foc->hal.set_pwm(0.2f, 0, 0);
             break;
     }
 }

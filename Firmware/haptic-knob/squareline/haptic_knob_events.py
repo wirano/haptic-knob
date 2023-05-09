@@ -30,3 +30,11 @@ def light_cb(event_struct):
 def light_tuning(event_struct):
     return
 
+
+def swich_cb(event_struct):
+    return
+
+
+def swich_status(event_struct):
+    return
+
